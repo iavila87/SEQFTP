@@ -46,7 +46,7 @@ int main(int argc, char* argv[]){
     }while(flagExit == 0);
 
     close(sd);
-    return 0;
+    return END_OK;
 }
 
 int initSocket(char * ip, char * port, struct sockaddr_in * add){
@@ -57,7 +57,7 @@ int initSocket(char * ip, char * port, struct sockaddr_in * add){
     int d= socket(AF_INET, SOCK_STREAM, 0); // En sd se almacena el socket descriptor
     if(d < 0){
         perror("No se pudo crear el socket.\n");
-        exit(1);
+        exit(ERR_CREATESOCK);
     }
     return d;
 }
@@ -66,7 +66,7 @@ void connectServer(int sockd, struct sockaddr_in * add){
     // Realiza la conexion con el servidor, con los argumentos recibidos
     if(connect(sockd, (struct sockaddr *)(add), sizeof(*add)) < 0){
         perror("Conexion fallida con el servidor.\n");
-        exit(2);    
+        exit(ERR_CNNT_SERV);    
     }
 }
 
@@ -86,7 +86,7 @@ void sendCmd(int sockd, char * cmd, char * dsc){
     // Escribe el string al servidor 
     if(write(sockd, bufferOut, sizeof(bufferOut)) < 0){
         perror("No se pudo escribir en el servidor.\n");
-        exit(3);
+        exit(ERR_SENDCLIENT);
     }
 }
 
@@ -96,6 +96,6 @@ void respCmd(int sockd){
     // Lee el string desde el servidor
     if(read(sockd,bufferIn,sizeof(bufferIn)) <0){
         perror("No se obtuvo recepcion\n");
-        exit(4);
+        exit(ERR_RECVCLIENT);
     }
 }

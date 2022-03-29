@@ -60,8 +60,7 @@ int main(int argc, char* argv[]){
     
     close(sd);
 
-    return 0;
-
+    return END_OK;
 }
 
 
@@ -73,16 +72,16 @@ int initSocket(char * ip, char * port, struct sockaddr_in * add, socklen_t l){
     int d= socket(AF_INET, SOCK_STREAM, 0); // En sd se almacena el socket descriptor
     if(d < 0){
         perror("No se pudo crear el socket.\n");
-        exit(1);
+        exit(ERR_CREATESOCK);
     }
 
     if(bind(d,(struct sockaddr *)add, l)<0){
         perror("No se pudo realizar el bind.\n");
-        exit(2);
+        exit(ERR_BIND);
     }
     if(listen(d,1)<0){
         perror("Fallo listen.\n");
-        exit(3);
+        exit(ERR_LISTEN);
     }
 
     return d;
@@ -102,7 +101,7 @@ void respCmd(int sockd){
     // Lee el string desde el servidor
     if(read(sockd,bufferIn,sizeof(bufferIn)) <0){
         perror("No se obtuvo recepcion\n");
-        exit(4);
+        exit(ERR_SENDSERV);
     }
 }
 
@@ -121,6 +120,6 @@ void sendCmd(int sockd, char * cmd, char * dsc){
     // Escribe el string al servidor 
     if(write(sockd, bufferOut, sizeof(bufferOut)) < 0){
         perror("No se pudo escribir en el servidor.\n");
-        exit(3);
+        exit(ERR_RECVSERV);
     }
 }
