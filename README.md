@@ -1,2 +1,2 @@
 # SEQFTP
-FTP Secuencial en C para SO Linux
+Codigo fuente para comunicacion client-server ftp
