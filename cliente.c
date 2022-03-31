@@ -8,6 +8,7 @@
 
 char bufferIn[64];
 char bufferOut[64];
+char consoleIn[64];
 
 int main(int argc, char* argv[]){
     // verifico la cantidad de argumentos
@@ -26,6 +27,8 @@ int main(int argc, char* argv[]){
     sendCmd(sd, DSC_OPEN, DSC_OPEN);
 
     respCmd(sd);
+    unsigned int code = codeRecv(bufferIn);
+    printf("code received: %d\r\n",code);
 
     do{
         printf("-> ");
@@ -80,6 +83,15 @@ void sendCmd(int sockd, char * cmd, char * dsc){
     else{
         if(strcmp(cmd, DSC_OPEN)==0){
             sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_OPEN, VERSION);
+        }else{
+            if(strcmp(cmd, CMD_USER)==0){
+                sprintf(bufferOut, "%s %s\r\n", CMD_USER, consoleIn);
+            }else{
+                if(strcmp(cmd, CMD_PASS)==0){
+                    sprintf(bufferOut, "%s %s\r\n", CMD_PASS, consoleIn);
+                }
+                
+            }
         }
     }
     
@@ -98,4 +110,34 @@ void respCmd(int sockd){
         perror("No se obtuvo recepcion\n");
         exit(ERR_RECVCLIENT);
     }
+}
+
+unsigned int codeRecv(char * c){
+    char Scode[3];
+    strncpy(Scode,c,3);
+    return atoi(Scode);
+}
+
+void clientAuntheticate(int s){
+    printf("username: ");
+    scanf("%s", consoleIn); // Solicito el nombre de usario por consola.
+    sendCmd(s, CMD_USER, NULL); // envio la trama "USER 'username'"
+    respCmd(s);                 // respuesta del servidor
+    memset(consoleIn, 0, sizeof(consoleIn)); // Blanqueo consoleIn
+    printf("%s",bufferIn);
+    if(codeRecv(bufferIn)==OP_RPASS){   // de la trama recibida tomo los primeros ascii y los comparo para saber si necesito password o no.
+        printf("passwd: ");             // 331 Password required for <nombreUsuario>\r\n
+        scanf("%s", consoleIn);
+        sendCmd(s, CMD_PASS, NULL);
+        respCmd(s);
+        if(codeRecv(bufferIn)==OP_LOGIN){ // 230 User <nombreUsuario> logged in\r\n
+            /* code para cuanto me logueo correctamente*/
+        }else{ 
+            if(codeRecv(bufferIn)==OP_LOGOUT){ // 530 Login incorrect\r\n
+            /* code */
+            }
+        }
+    }
+    //strchr
+
 }
