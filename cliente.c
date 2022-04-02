@@ -132,9 +132,11 @@ void clientAuntheticate(int s){
         respCmd(s);
         if(codeRecv(bufferIn)==OP_LOGIN){ // 230 User <nombreUsuario> logged in\r\n
             /* code para cuanto me logueo correctamente*/
+            printf("OK logueo correcto\n");
         }else{ 
             if(codeRecv(bufferIn)==OP_LOGOUT){ // 530 Login incorrect\r\n
             /* code */
+            printf("logueo incorrecto\n");
             }
         }
     }

@@ -21,6 +21,10 @@ int main(int argc, char* argv[]){
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
     socklen_t longStruct = sizeof(server_address);
+    char * cmdRcv; // comando recibido
+    char * pmtRcv; // parametro recibido
+    char * fPass; // contiene el password leido desde el archivo
+    FILE * file; // contiene la struct que maneja el archivo
 
     sd = initSocket("127.0.0.1", argv[1], &server_address, longStruct);
     
@@ -37,8 +41,10 @@ int main(int argc, char* argv[]){
         
             respCmd(clientesd);
             printf("Redibo de comando: %s\r\n",bufferIn);
+            cmdRcv = extractCmd(bufferIn);
         
-            if(strncmp( bufferIn, OPR_QUIT, (sizeof(OPR_QUIT)-1) ) == 0){
+            if(strncmp( cmdRcv, OPR_QUIT, (sizeof(OPR_QUIT)-1) ) == 0){
+                // Tratamiento comando QUIT
                 memset(bufferOut, 0, sizeof(bufferOut));
                 sprintf(bufferOut, "%s\r\n",CMD_OKQUIT);
                 if(write(clientesd,bufferOut,sizeof(bufferOut)) < 0){
@@ -48,12 +54,48 @@ int main(int argc, char* argv[]){
                 close(clientesd);
                 printf("Cliente desconectado.\n");
                 printf("\n");
-                printf("***********************************\n");
+                printf("***********************************\n\n");
                 break;
             }else{
-                memset(bufferOut, 0, sizeof(bufferOut));
-                sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
-                write(clientesd,bufferOut,sizeof(bufferOut));
+                if(strncmp( cmdRcv, OPR_USER, (sizeof(OPR_USER)-1) ) == 0){
+                    // Tratamiento comando USER
+                    pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
+                    file = openFile("ftpusers", "r");
+                    fPass = searchUserFile(file, pmtRcv);
+                    if(fPass == NULL){
+                        //responder que no es valido el usuario
+                        memset(bufferOut, 0, sizeof(bufferOut));
+                        sprintf(bufferOut, "%s %s\r\n", CMD_LOGERROR, TXT_LOGERROR);
+                        write(clientesd,bufferOut,sizeof(bufferOut));
+                    }else{
+                        //responder que solicito la pass
+                        memset(bufferOut, 0, sizeof(bufferOut));
+                        sprintf(bufferOut, "%s %s %s\r\n", CMD_UPASS, TXT_PASSREQ, pmtRcv);
+                        write(clientesd,bufferOut,sizeof(bufferOut));
+                    }
+                }else{
+                    if(strncmp( cmdRcv, OPR_PASS, (sizeof(OPR_PASS)-1) ) == 0){
+                        // Tratamiento comando PASS
+                        pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
+                        if(strncmp(fPass, pmtRcv, strlen(fPass)) == 0){
+                            //responder logueo exitoso
+                            memset(bufferOut, 0, sizeof(bufferOut));
+                            sprintf(bufferOut, "%s %s %s\r\n", CMD_UPASS, TXT_PASSREQ, pmtRcv);
+                            write(clientesd,bufferOut,sizeof(bufferOut));
+                        }else{
+                            //responder que no es correcta la pass
+                            memset(bufferOut, 0, sizeof(bufferOut));
+                            sprintf(bufferOut, "%s %s\r\n", CMD_LOGERROR, TXT_LOGERROR);
+                            write(clientesd,bufferOut,sizeof(bufferOut));
+                        }
+                    }else{
+                        memset(bufferOut, 0, sizeof(bufferOut));
+                        sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
+                        write(clientesd,bufferOut,sizeof(bufferOut));
+                    }
+                    
+                }
+                
             }        
         }
     }
@@ -122,4 +164,68 @@ void sendCmd(int sockd, char * cmd, char * dsc){
         perror("No se pudo escribir en el servidor.\n");
         exit(ERR_RECVSERV);
     }
+}
+
+// retorna el comando recibido en el buffer de entrada
+char * extractCmd(char * s){
+    char * c;
+    int n;
+    // se libera la memoria luego en el flujo principal
+    char * d = malloc(5); // reservo 4 bytes para los caracteres del comando y el 5 para \0
+    memset(d, 0, sizeof(5));
+    
+
+    c = strchr(s,' ');
+
+    if(c == NULL){
+        return s;
+    }else{
+        n = s-c;
+        strncpy(d, s, n);
+        return d;
+    }
+}
+
+
+// retorna el parametro recibido en el buffer de entrada
+char * extract1Pmt(char * s){
+    // se libera la memoria luego en el flujo principal
+    char * d = malloc(100); // reservo 100 bytes para paremetros
+    memset(d, 0, sizeof(100));
+
+    d = strchr(s,' ');
+    d+=1;
+    if(d == NULL){
+        return NULL;
+    }else{
+        return d;
+    }
+}
+
+
+// abre el archivo ascii, y retorna FILE *
+FILE * openFile(char * path, char * type){
+    return fopen (path, type);
+}
+
+// busca en el archivo el usuario y retorna su contraseña
+char * searchUserFile(FILE * f, char * s){
+    char linea[50];
+    char * c;
+    char *p = malloc(50);
+    char fu[50];
+    int n;
+    while (feof(f) == 0){
+ 		fgets(linea,50,f);
+ 		printf("linea leida %s\n",linea);
+        c = strchr(linea,':');
+        n = c - linea;
+        strncpy(fu, linea, n);
+        if(strcmp(s, fu) == 0){
+            c += 1;
+            strncpy(p, c, strlen(c));
+            return p;
+        }
+ 	}
+    return NULL;
 }
