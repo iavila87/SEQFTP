@@ -1,5 +1,6 @@
 #define CMD_INIT        "220"
 #define CMD_UPASS       "331"
+#define CMD_LOGIN       "230"
 #define CMD_LOGERROR    "530"
 #define DSC_NAME        "serverFTP"
 #define VERSION         "0.0"
@@ -10,6 +11,8 @@
 #define CMD_OKQUIT      "OKQUIT"
 #define TXT_PASSREQ     "Password required for"
 #define TXT_LOGERROR    "Login incorrect"
+#define TXT_LOGIN1      "User"
+#define TXT_LOGIN2      "logged in"
 
 #define END_OK          0
 #define ERR_CREATESOCK  1

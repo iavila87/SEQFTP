@@ -23,6 +23,7 @@ int main(int argc, char* argv[]){
     socklen_t longStruct = sizeof(server_address);
     char * cmdRcv; // comando recibido
     char * pmtRcv; // parametro recibido
+    char * fUser; // contiene el user en cuestion
     char * fPass; // contiene el password leido desde el archivo
     FILE * file; // contiene la struct que maneja el archivo
 
@@ -33,14 +34,14 @@ int main(int argc, char* argv[]){
         clientesd = acceptClient(sd, &client_address, &longStruct);
         
         respCmd(clientesd);
-        printf("Conectado con: %s\n",bufferIn);
+        printf("Conectado con un nuevo cliente\n");
         sendCmd(clientesd, DSC_OPEN, CMD_INIT);
         //printf("bufferOut: %s",bufferOut);
     
         while(1){
         
             respCmd(clientesd);
-            printf("Redibo de comando: %s\r\n",bufferIn);
+            
             cmdRcv = extractCmd(bufferIn);
         
             if(strncmp( cmdRcv, OPR_QUIT, (sizeof(OPR_QUIT)-1) ) == 0){
@@ -59,34 +60,38 @@ int main(int argc, char* argv[]){
             }else{
                 if(strncmp( cmdRcv, OPR_USER, (sizeof(OPR_USER)-1) ) == 0){
                     // Tratamiento comando USER
-                    pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
+                    fUser = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
                     file = openFile("ftpusers", "r");
-                    fPass = searchUserFile(file, pmtRcv);
+                    fPass = searchUserFile(file, fUser);
                     if(fPass == NULL){
                         //responder que no es valido el usuario
                         memset(bufferOut, 0, sizeof(bufferOut));
                         sprintf(bufferOut, "%s %s\r\n", CMD_LOGERROR, TXT_LOGERROR);
                         write(clientesd,bufferOut,sizeof(bufferOut));
+                        close(clientesd);
+                        break;
                     }else{
                         //responder que solicito la pass
                         memset(bufferOut, 0, sizeof(bufferOut));
-                        sprintf(bufferOut, "%s %s %s\r\n", CMD_UPASS, TXT_PASSREQ, pmtRcv);
+                        sprintf(bufferOut, "%s %s %s\r\n", CMD_UPASS, TXT_PASSREQ, fUser);
                         write(clientesd,bufferOut,sizeof(bufferOut));
                     }
                 }else{
                     if(strncmp( cmdRcv, OPR_PASS, (sizeof(OPR_PASS)-1) ) == 0){
                         // Tratamiento comando PASS
                         pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
-                        if(strncmp(fPass, pmtRcv, strlen(fPass)) == 0){
+                        if(strncmp(fPass, pmtRcv, strlen(fPass)-1) == 0){
                             //responder logueo exitoso
                             memset(bufferOut, 0, sizeof(bufferOut));
-                            sprintf(bufferOut, "%s %s %s\r\n", CMD_UPASS, TXT_PASSREQ, pmtRcv);
+                            sprintf(bufferOut, "%s %s %s %s\r\n", CMD_LOGIN, TXT_LOGIN1, fUser, TXT_LOGIN2);
                             write(clientesd,bufferOut,sizeof(bufferOut));
                         }else{
                             //responder que no es correcta la pass
                             memset(bufferOut, 0, sizeof(bufferOut));
                             sprintf(bufferOut, "%s %s\r\n", CMD_LOGERROR, TXT_LOGERROR);
                             write(clientesd,bufferOut,sizeof(bufferOut));
+                            close(clientesd);
+                            break;
                         }
                     }else{
                         memset(bufferOut, 0, sizeof(bufferOut));
@@ -174,13 +179,13 @@ char * extractCmd(char * s){
     char * d = malloc(5); // reservo 4 bytes para los caracteres del comando y el 5 para \0
     memset(d, 0, sizeof(5));
     
-
+    //printf("soy n del extractCmd %s\n",d);
     c = strchr(s,' ');
 
     if(c == NULL){
         return s;
     }else{
-        n = s-c;
+        n = c-s;
         strncpy(d, s, n);
         return d;
     }
@@ -191,10 +196,15 @@ char * extractCmd(char * s){
 char * extract1Pmt(char * s){
     // se libera la memoria luego en el flujo principal
     char * d = malloc(100); // reservo 100 bytes para paremetros
+    char * r;
+    int end;
     memset(d, 0, sizeof(100));
 
-    d = strchr(s,' ');
-    d+=1;
+    r = strchr(s,' ');
+    r+=1;
+    end = strchr(r,'\r') - r;
+    strncpy(d,r,end);
+    
     if(d == NULL){
         return NULL;
     }else{
@@ -214,15 +224,18 @@ char * searchUserFile(FILE * f, char * s){
     char * c;
     char *p = malloc(50);
     char fu[50];
+    memset(fu,0,50);
     int n;
+
     while (feof(f) == 0){
  		fgets(linea,50,f);
- 		printf("linea leida %s\n",linea);
         c = strchr(linea,':');
         n = c - linea;
+        c = &c[0] +1;
+
         strncpy(fu, linea, n);
-        if(strcmp(s, fu) == 0){
-            c += 1;
+
+        if(strncmp(s, fu, n) == 0){
             strncpy(p, c, strlen(c));
             return p;
         }

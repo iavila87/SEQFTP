@@ -28,9 +28,11 @@ int main(int argc, char* argv[]){
 
     respCmd(sd);
     unsigned int code = codeRecv(bufferIn);
-    printf("code received: %d\r\n",code);
-
-    do{
+    
+    printf("%s",bufferIn);
+    flagExit = clientAuntheticate(sd);
+    
+    while(flagExit == 0){
         printf("-> ");
         scanf("%s", bufferOut);
 
@@ -46,7 +48,7 @@ int main(int argc, char* argv[]){
         }
         //printf("llego del servidor: %s\n",bufferIn);
 
-    }while(flagExit == 0);
+    }
 
     close(sd);
     return END_OK;
@@ -118,28 +120,34 @@ unsigned int codeRecv(char * c){
     return atoi(Scode);
 }
 
-void clientAuntheticate(int s){
+
+int clientAuntheticate(int s){
     printf("username: ");
     scanf("%s", consoleIn); // Solicito el nombre de usario por consola.
     sendCmd(s, CMD_USER, NULL); // envio la trama "USER 'username'"
     respCmd(s);                 // respuesta del servidor
     memset(consoleIn, 0, sizeof(consoleIn)); // Blanqueo consoleIn
-    printf("%s",bufferIn);
+    
     if(codeRecv(bufferIn)==OP_RPASS){   // de la trama recibida tomo los primeros ascii y los comparo para saber si necesito password o no.
+        printf("%s",bufferIn);
         printf("passwd: ");             // 331 Password required for <nombreUsuario>\r\n
-        scanf("%s", consoleIn);
+        scanf("%s", consoleIn);     
         sendCmd(s, CMD_PASS, NULL);
         respCmd(s);
-        if(codeRecv(bufferIn)==OP_LOGIN){ // 230 User <nombreUsuario> logged in\r\n
+        
+        if(codeRecv(bufferIn) == OP_LOGIN){ // 230 User <nombreUsuario> logged in\r\n
             /* code para cuanto me logueo correctamente*/
-            printf("OK logueo correcto\n");
+            printf("%s", bufferIn);
+            return 0;
         }else{ 
-            if(codeRecv(bufferIn)==OP_LOGOUT){ // 530 Login incorrect\r\n
+            if(codeRecv(bufferIn) == OP_LOGOUT){ // 530 Login incorrect\r\n
             /* code */
-            printf("logueo incorrecto\n");
+            printf("%s", bufferIn);
+            return 1;
             }
         }
     }
-    //strchr
-
+    printf("%s",bufferIn);
+    return 1;
+   
 }

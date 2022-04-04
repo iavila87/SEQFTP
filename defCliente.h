@@ -21,4 +21,4 @@ void connectServer(int sockd, struct sockaddr_in * add);
 void sendCmd(int sockt, char * cmd, char * dsc);
 void respCmd(int sockd);
 unsigned int codeRecv(char * c);
-void clientAuntheticate(int s);
+int clientAuntheticate(int s);
