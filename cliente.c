@@ -20,10 +20,25 @@ int main(int argc, char* argv[]){
     int sd;         // socket descriptor
     int flagExit = 0;
     struct sockaddr_in addrSock;
+    struct sockaddr_in addrLocalSock; // estructura que contine los datos de la maquina local
+    socklen_t addrLSLen = (sizeof(addrLocalSock));
+    char cmds[10]; // contiene el comando recibido por teclado 
+    char prms[50]; // contiene el parametro recibido por teclado
+
+    /*******************************************/
+    addrLocalSock.sin_family = AF_INET;         // Protocolo IPv4
+    addrLocalSock.sin_addr.s_addr = INADDR_ANY; // IP
+    addrLocalSock.sin_port = htons(0);          // Puerto
+    /*******************************************/
     
     sd = initSocket(argv[1], argv[2], &addrSock);
     connectServer(sd, &addrSock);
 
+    /*******************************************/
+    getsockname(sd, (struct sockaddr *)&addrLocalSock, &addrLSLen);
+    printf("mi puerto es: %d\n", ntohs(addrLocalSock.sin_port));
+    /*******************************************/
+    
     sendCmd(sd, DSC_OPEN, DSC_OPEN);
 
     respCmd(sd);
@@ -34,10 +49,20 @@ int main(int argc, char* argv[]){
     
     while(flagExit == 0){
         printf("-> ");
-        scanf("%s", bufferOut);
+        //scanf("%s", bufferOut);
+        fgets(bufferOut,sizeof(bufferOut),stdin); // ingreso de comandos por consola.
+        if ((strlen(bufferOut) != 0) && (bufferOut[strlen (bufferOut) - 1] == '\n')){
+            bufferOut[strlen (bufferOut) - 1] = '\0';
+        }
 
+        extCmdParam(bufferOut, cmds, prms);
+        
         if(strcmp(bufferOut, CMD_QUIT) == 0){
             sendCmd(sd, CMD_QUIT, DSC_OPEN);
+        }else{
+            if(strcmp(bufferOut, CMD_GET) == 0){
+                sendCmd(sd, CMD_RETR, prms);
+            }
         }
     
         // Lee el string desde el servidor
@@ -91,6 +116,10 @@ void sendCmd(int sockd, char * cmd, char * dsc){
             }else{
                 if(strcmp(cmd, CMD_PASS)==0){
                     sprintf(bufferOut, "%s %s\r\n", CMD_PASS, consoleIn);
+                }else{
+                    if(strcmp(cmd, CMD_RETR)==0){
+                        sprintf(bufferOut, "%s %s\r\n", CMD_RETR, dsc);
+                    }
                 }
                 
             }
@@ -114,6 +143,30 @@ void respCmd(int sockd){
     }
 }
 
+void extCmdParam(char * buffer, char * c, char * p){
+    char nb[64];
+    char * aux;
+    int n;  // contiene la longitud de la cadena a extraer
+
+    memset(c, 0, sizeof(c)); // Blanqueo c
+    memset(p, 0, sizeof(p)); // Blanqueo p
+    aux = strchr(buffer,' ');
+    
+    if(aux == NULL){
+        strcpy(c,buffer);
+    }else{
+        n = aux-buffer;
+        printf("aux: %p - buffer: %p\n", aux, buffer);
+        strncpy(c, buffer, n);
+    }
+    n += 1;
+    strcpy(p,buffer+n);
+
+    printf("cmmd: %s\n", c);
+    printf("pram: %s\n", p);
+}
+
+//Retorna el codigo recibido
 unsigned int codeRecv(char * c){
     char Scode[3];
     strncpy(Scode,c,3);
@@ -123,7 +176,12 @@ unsigned int codeRecv(char * c){
 
 int clientAuntheticate(int s){
     printf("username: ");
-    scanf("%s", consoleIn); // Solicito el nombre de usario por consola.
+    //scanf("%s", consoleIn); // Solicito el nombre de usario por consola.
+    fgets(consoleIn,sizeof(consoleIn),stdin); // Solicito el nombre de usario por consola.
+    if ((strlen(consoleIn) != 0) && (consoleIn[strlen (consoleIn) - 1] == '\n')){
+        consoleIn[strlen (consoleIn) - 1] = '\0';
+    }
+    
     sendCmd(s, CMD_USER, NULL); // envio la trama "USER 'username'"
     respCmd(s);                 // respuesta del servidor
     memset(consoleIn, 0, sizeof(consoleIn)); // Blanqueo consoleIn
@@ -131,7 +189,12 @@ int clientAuntheticate(int s){
     if(codeRecv(bufferIn)==OP_RPASS){   // de la trama recibida tomo los primeros ascii y los comparo para saber si necesito password o no.
         printf("%s",bufferIn);
         printf("passwd: ");             // 331 Password required for <nombreUsuario>\r\n
-        scanf("%s", consoleIn);     
+        //scanf("%s", consoleIn);
+        fgets(consoleIn,sizeof(consoleIn),stdin); // Solicito el nombre de usario por consola.
+        if ((strlen(consoleIn) != 0) && (consoleIn[strlen (consoleIn) - 1] == '\n')){
+            consoleIn[strlen (consoleIn) - 1] = '\0';
+        }
+
         sendCmd(s, CMD_PASS, NULL);
         respCmd(s);
         

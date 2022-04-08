@@ -5,6 +5,8 @@
 #define DSC_OPEN "clientFTP"
 #define VERSION "0.0"
 #define CMD_QUIT "QUIT"
+#define CMD_GET "get"
+#define CMD_RETR "RETR"
 #define CMD_USER "USER"
 #define CMD_PASS "PASS"
 #define CMD_OKQUIT "OKQUIT"
@@ -22,3 +24,4 @@ void sendCmd(int sockt, char * cmd, char * dsc);
 void respCmd(int sockd);
 unsigned int codeRecv(char * c);
 int clientAuntheticate(int s);
+void extCmdParam(char * buffer, char * c, char * p);

@@ -20,6 +20,8 @@ int main(int argc, char* argv[]){
     int clientesd;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
+    char ipclient[INET_ADDRSTRLEN]; // IP con la que se conecto el cliente
+    int portclient; // puert con el que se conecto el cliente
     socklen_t longStruct = sizeof(server_address);
     char * cmdRcv; // comando recibido
     char * pmtRcv; // parametro recibido
@@ -28,11 +30,17 @@ int main(int argc, char* argv[]){
     FILE * file; // contiene la struct que maneja el archivo
 
     sd = initSocket("127.0.0.1", argv[1], &server_address, longStruct);
-    
+
     while(1){
         printf("Esperando conexion de un cliente...\n");
         clientesd = acceptClient(sd, &client_address, &longStruct);
         
+        // obtengo la ip y puerto del cliente
+        inet_ntop(AF_INET,&(client_address.sin_addr), ipclient, INET_ADDRSTRLEN);
+        portclient = ntohs(client_address.sin_port);
+        printf("conexion establecida con IP: %s y puerto: %d\n", ipclient, portclient);
+        /************************/
+
         respCmd(clientesd);
         printf("Conectado con un nuevo cliente\n");
         sendCmd(clientesd, DSC_OPEN, CMD_INIT);
