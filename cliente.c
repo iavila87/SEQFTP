@@ -48,20 +48,25 @@ int main(int argc, char* argv[]){
     flagExit = clientAuntheticate(sd);
     
     while(flagExit == 0){
+        
         printf("-> ");
-        //scanf("%s", bufferOut);
+        /**************************/
+        // se quito scanf para poder adquirir string que contengan espacios en blanco
         fgets(bufferOut,sizeof(bufferOut),stdin); // ingreso de comandos por consola.
         if ((strlen(bufferOut) != 0) && (bufferOut[strlen (bufferOut) - 1] == '\n')){
             bufferOut[strlen (bufferOut) - 1] = '\0';
         }
+        /**************************/
 
         extCmdParam(bufferOut, cmds, prms);
         
         if(strcmp(bufferOut, CMD_QUIT) == 0){
             sendCmd(sd, CMD_QUIT, DSC_OPEN);
         }else{
-            if(strcmp(bufferOut, CMD_GET) == 0){
+            if(strncmp(bufferOut, CMD_GET, strlen(CMD_GET)) == 0){
                 sendCmd(sd, CMD_RETR, prms);
+            }else{
+                printf("Comando no reconocido.\n");
             }
         }
     
@@ -70,8 +75,11 @@ int main(int argc, char* argv[]){
         if(strncmp(bufferIn, CMD_OKQUIT,(sizeof(CMD_OKQUIT))-1) == 0){
             flagExit = 1;
             printf("Cerrando conexion.\r\n");
+        }else{
+            if(codeRecv(bufferIn) == OP_FILEE){
+                printf("%s", bufferIn);
+            }
         }
-        //printf("llego del servidor: %s\n",bufferIn);
 
     }
 
@@ -102,7 +110,6 @@ void connectServer(int sockd, struct sockaddr_in * add){
 
 void sendCmd(int sockd, char * cmd, char * dsc){
     // Blanqueo el buffer de recepcion
-    //printf("\ncmd: %s\n",cmd);
     memset(bufferOut, 0, sizeof(bufferOut));
     if(strcmp(cmd, CMD_QUIT) == 0){
         sprintf(bufferOut, "%s\r\n", CMD_QUIT);
@@ -176,12 +183,14 @@ unsigned int codeRecv(char * c){
 
 int clientAuntheticate(int s){
     printf("username: ");
-    //scanf("%s", consoleIn); // Solicito el nombre de usario por consola.
+
+    /**************************/
     fgets(consoleIn,sizeof(consoleIn),stdin); // Solicito el nombre de usario por consola.
     if ((strlen(consoleIn) != 0) && (consoleIn[strlen (consoleIn) - 1] == '\n')){
         consoleIn[strlen (consoleIn) - 1] = '\0';
     }
-    
+    /**************************/
+
     sendCmd(s, CMD_USER, NULL); // envio la trama "USER 'username'"
     respCmd(s);                 // respuesta del servidor
     memset(consoleIn, 0, sizeof(consoleIn)); // Blanqueo consoleIn
@@ -189,11 +198,13 @@ int clientAuntheticate(int s){
     if(codeRecv(bufferIn)==OP_RPASS){   // de la trama recibida tomo los primeros ascii y los comparo para saber si necesito password o no.
         printf("%s",bufferIn);
         printf("passwd: ");             // 331 Password required for <nombreUsuario>\r\n
-        //scanf("%s", consoleIn);
+        
+        /**************************/
         fgets(consoleIn,sizeof(consoleIn),stdin); // Solicito el nombre de usario por consola.
         if ((strlen(consoleIn) != 0) && (consoleIn[strlen (consoleIn) - 1] == '\n')){
             consoleIn[strlen (consoleIn) - 1] = '\0';
         }
+        /**************************/
 
         sendCmd(s, CMD_PASS, NULL);
         respCmd(s);

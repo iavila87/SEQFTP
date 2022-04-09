@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "defServidor.h"
 
@@ -102,9 +103,31 @@ int main(int argc, char* argv[]){
                             break;
                         }
                     }else{
-                        memset(bufferOut, 0, sizeof(bufferOut));
-                        sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
-                        write(clientesd,bufferOut,sizeof(bufferOut));
+                        if(strncmp( cmdRcv, OPR_RETR, (sizeof(OPR_RETR)-1) ) == 0){
+                            // Tratamiento comando RETR
+                            printf("Llegue a RETR\n");
+                            pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
+                            printf("el parametro recibido es: %s\n", pmtRcv);
+                            printf("tamaño: %ld\n", strlen(pmtRcv));
+                            if(existFile(pmtRcv)){
+                                // si existe el archivo respondo al cliente 
+                                //"299 File <nombreArchivo> size <tamaño> bytes\r\n"
+                                memset(bufferOut, 0, sizeof(bufferOut));
+                                sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, pmtRcv, TXT_FILEE2, sizeFile(pmtRcv), TXT_FILEE3);
+                                printf("llegue y voy a escribir al cliente\n");
+                                write(clientesd,bufferOut,sizeof(bufferOut));
+                                //close(clientesd);
+
+                            }else{
+
+                            }
+
+                        }else{
+                            memset(bufferOut, 0, sizeof(bufferOut));
+                            sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
+                            write(clientesd,bufferOut,sizeof(bufferOut));
+                        }
+                        
                     }
                     
                 }
@@ -221,9 +244,14 @@ char * extract1Pmt(char * s){
 }
 
 
-// abre el archivo ascii, y retorna FILE *
+// abre el archivo, y retorna FILE *
 FILE * openFile(char * path, char * type){
     return fopen (path, type);
+}
+
+// cierra el archivo recibido como parametro
+void closeFile(FILE * file){
+    fclose(file);
 }
 
 // busca en el archivo el usuario y retorna su contraseña
@@ -249,4 +277,36 @@ char * searchUserFile(FILE * f, char * s){
         }
  	}
     return NULL;
+}
+
+// verifica la existencia de un archivo.
+// 1=> Existe
+// 0=> No Existe
+int existFile(char * path){
+    printf("entre al existFile\n");
+    FILE * file = openFile(path, "r");
+    printf("pase openFile\n");
+    if (openFile(path, "r") == NULL){
+        closeFile(file);
+        printf("retorno 0\n");
+        return 0;
+    }else{
+        closeFile(file);
+        printf("retorno 1\n");
+        return 1;
+    }
+    
+}
+
+// retorna el tamaño en bytes del archivo recibido por parametro
+int sizeFile(char * path){
+
+    struct stat stFile;
+
+    if (stat(path, &stFile) == -1) {
+        perror("No se pudo leer el tamaño del archivo\n");
+        exit(ERR_STATFILE);
+    }
+
+    return stFile.st_size; // retorna el tamaño en bytes del archivo
 }
