@@ -2,6 +2,7 @@
 #define CMD_UPASS       "331"
 #define CMD_LOGIN       "230"
 #define CMD_FILEE       "299"
+#define CMD_FILENE      "550"
 #define CMD_LOGERROR    "530"
 #define DSC_NAME        "serverFTP"
 #define VERSION         "0.0"
@@ -18,6 +19,7 @@
 #define TXT_FILEE1      "File"
 #define TXT_FILEE2      "size"
 #define TXT_FILEE3      "bytes"
+#define TXT_FILENE      ": no such file or directory"
 #define END_OK          0
 #define ERR_CREATESOCK  1
 #define ERR_BIND        5

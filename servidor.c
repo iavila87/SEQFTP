@@ -111,15 +111,19 @@ int main(int argc, char* argv[]){
                             printf("tamaño: %ld\n", strlen(pmtRcv));
                             if(existFile(pmtRcv)){
                                 // si existe el archivo respondo al cliente 
-                                //"299 File <nombreArchivo> size <tamaño> bytes\r\n"
+                                // "299 File <nombreArchivo> size <tamaño> bytes\r\n"
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, pmtRcv, TXT_FILEE2, sizeFile(pmtRcv), TXT_FILEE3);
                                 printf("llegue y voy a escribir al cliente\n");
                                 write(clientesd,bufferOut,sizeof(bufferOut));
-                                //close(clientesd);
 
                             }else{
-
+                                // si no existe el archivo respondo al cliente
+                                // "550 <nombreFichero>: no such file or directory\r\n"
+                                memset(bufferOut, 0, sizeof(bufferOut));
+                                sprintf(bufferOut, "%s %s%s\r\n", CMD_FILENE, pmtRcv, TXT_FILENE);
+                                printf("llegue y voy a escribir al cliente\n");
+                                write(clientesd,bufferOut,sizeof(bufferOut));
                             }
 
                         }else{
@@ -287,7 +291,7 @@ int existFile(char * path){
     FILE * file = openFile(path, "r");
     printf("pase openFile\n");
     if (openFile(path, "r") == NULL){
-        closeFile(file);
+        //closeFile(file);
         printf("retorno 0\n");
         return 0;
     }else{

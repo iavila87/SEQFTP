@@ -78,6 +78,12 @@ int main(int argc, char* argv[]){
         }else{
             if(codeRecv(bufferIn) == OP_FILEE){
                 printf("%s", bufferIn);
+            }else{
+                if(codeRecv(bufferIn) == OP_FILENE){
+                    printf("%s", bufferIn);
+                }else{
+
+                }
             }
         }
 

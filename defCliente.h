@@ -3,6 +3,7 @@
 #define OP_LOGIN    230 // Usuario logueado correctamente.
 #define OP_LOGOUT   530 // Usuario No logueado correctamente.
 #define OP_FILEE    299 // archivo solicitado existe en el servidor
+#define OP_FILENE   550 // archivo solicitado no existe en el servidor
 #define DSC_OPEN "clientFTP"
 #define VERSION "0.0"
 #define CMD_QUIT "QUIT"
