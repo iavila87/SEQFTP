@@ -10,6 +10,7 @@
 #define OPR_USER        "USER"
 #define OPR_PASS        "PASS"
 #define OPR_RETR        "RETR"
+#define OPR_PORT        "PORT"
 #define DSC_OPEN        "srvFTP"
 #define CMD_OKQUIT      "OKQUIT"
 #define TXT_PASSREQ     "Password required for"

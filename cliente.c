@@ -9,6 +9,7 @@
 char bufferIn[64];
 char bufferOut[64];
 char consoleIn[64];
+char ipport[100];
 
 int main(int argc, char* argv[]){
     // verifico la cantidad de argumentos
@@ -18,13 +19,18 @@ int main(int argc, char* argv[]){
     }
 
     int sd;         // socket descriptor
+    int sdData;
     int flagExit = 0;
     struct sockaddr_in addrSock;
     struct sockaddr_in addrLocalSock; // estructura que contine los datos de la maquina local
+    
     socklen_t addrLSLen = (sizeof(addrLocalSock));
     char cmds[10]; // contiene el comando recibido por teclado 
     char prms[50]; // contiene el parametro recibido por teclado
-
+    char iplocal[16];
+    int flagFTrnsf = 0;
+    int portLocal;
+    int portData;
     /*******************************************/
     addrLocalSock.sin_family = AF_INET;         // Protocolo IPv4
     addrLocalSock.sin_addr.s_addr = INADDR_ANY; // IP
@@ -36,6 +42,9 @@ int main(int argc, char* argv[]){
 
     /*******************************************/
     getsockname(sd, (struct sockaddr *)&addrLocalSock, &addrLSLen);
+    inet_ntop(AF_INET,&(addrLocalSock.sin_addr), iplocal, INET_ADDRSTRLEN);
+    printf("mi ip es: %s\n",iplocal);
+    portLocal = ntohs(addrLocalSock.sin_port);
     printf("mi puerto es: %d\n", ntohs(addrLocalSock.sin_port));
     /*******************************************/
     
@@ -78,6 +87,9 @@ int main(int argc, char* argv[]){
         }else{
             if(codeRecv(bufferIn) == OP_FILEE){
                 printf("%s", bufferIn);
+                // si llegue hasta aca entonces debo crear la conexion de datos
+                // con el servidor para que me envie el archivo
+                flagFTrnsf = 1;
             }else{
                 if(codeRecv(bufferIn) == OP_FILENE){
                     printf("%s", bufferIn);
@@ -87,6 +99,48 @@ int main(int argc, char* argv[]){
             }
         }
 
+
+        if(flagFTrnsf){
+            // abro un nuevo socket para los datos
+            sdData = socket(AF_INET, SOCK_STREAM, 0); // En sd se almacena el socket descriptor
+            if(sdData < 0){
+                perror("No se pudo crear el socket.\n");
+                exit(ERR_CREATESOCK);
+            }
+            // recupero el puerto actual para abrir el siguiente
+            // de estar ocupado abro uno libre
+            portLocal = ntohs(addrLocalSock.sin_port);
+            addrLocalSock.sin_port = htons(portLocal+1); //le asigno el puerto siguiente
+            // pruebo realizar un bind si es correcto utilizara este puerto en caso contrario
+            // realizaremos otro bind con un puerto libre
+            if(bind(sdData,(struct sockaddr *)&addrLocalSock, addrLSLen)<0){
+                perror("No se pudo realizar el bind.\n");
+                // cambio el puerto por uno libre y realizo nuevamente el bind
+                addrLocalSock.sin_port = htons(0); //le asigno el puerto siguiente
+                if(bind(sdData,(struct sockaddr *)&addrLocalSock, addrLSLen)<0){
+                    perror("No se pudo realizar el bind.\n");
+                    exit(ERR_BIND);
+                }
+                getsockname(sdData, (struct sockaddr *)&addrLocalSock, &addrLSLen);
+                inet_ntop(AF_INET,&(addrLocalSock.sin_addr), iplocal, INET_ADDRSTRLEN);
+                printf("mi ip de datos es: %s\n",iplocal);
+                printf("mi puerto de datos es: %d\n", ntohs(addrLocalSock.sin_port));
+            }
+
+            getsockname(sdData, (struct sockaddr *)&addrLocalSock, &addrLSLen);
+            inet_ntop(AF_INET,&(addrLocalSock.sin_addr), iplocal, INET_ADDRSTRLEN);
+            printf("mi ip de datos es: %s\n",iplocal);
+            printf("mi puerto de datos es: %d\n", ntohs(addrLocalSock.sin_port));
+
+            if(listen(sdData,1)<0){
+                perror("Fallo listen.\n");
+                exit(ERR_LISTEN);
+            }
+            // envio PORT
+            formatIpPort(ipport, iplocal, ntohs(addrLocalSock.sin_port));
+            sendCmd(sd, CMD_PORT, ipport);
+            
+        }
     }
 
     close(sd);
@@ -132,6 +186,10 @@ void sendCmd(int sockd, char * cmd, char * dsc){
                 }else{
                     if(strcmp(cmd, CMD_RETR)==0){
                         sprintf(bufferOut, "%s %s\r\n", CMD_RETR, dsc);
+                    }else{
+                        if(strcmp(cmd, CMD_PORT)==0){
+                            sprintf(bufferOut, "%s %s\r\n", CMD_PORT, dsc);
+                        }
                     }
                 }
                 
@@ -230,4 +288,39 @@ int clientAuntheticate(int s){
     printf("%s",bufferIn);
     return 1;
    
+}
+
+// formatea el string para ser enviado con el comando PORT
+void formatIpPort(char * strOut, char * ip, int port){
+    char * aux;
+    char * auxA;
+    char ip1Aux[4];
+    char ip2Aux[4];
+    char ip3Aux[4];
+    char ip4Aux[4];
+    int portH;
+    int portL;
+    int n;
+    aux = strchr(ip,'.');
+    n = aux - ip;
+    strncpy(ip1Aux, aux, n); // 1 octeto
+    aux += 1;
+    auxA = aux;
+    aux = strchr(auxA,'.');
+    n = aux - auxA;
+    strncpy(ip2Aux, aux, n); // 2 octeto
+    aux += 1;
+    auxA = aux;
+    aux = strchr(auxA,'.');
+    n = aux - auxA;
+    strncpy(ip3Aux, aux, n); // 3 octeto
+    aux += 1;
+    auxA = aux;
+    aux = strchr(auxA,'\0');
+    n = aux - auxA;
+    strncpy(ip3Aux, aux, n); // 4 octeto
+    portH = (port >> 8) & 0xFF;
+    portL = port &  0xFFFFFF00;
+    sprintf(strOut,"%s,%s,%s,%s,%d,%d", ip1Aux, ip2Aux, ip3Aux, ip4Aux, portH, portL);
+
 }

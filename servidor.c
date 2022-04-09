@@ -127,9 +127,13 @@ int main(int argc, char* argv[]){
                             }
 
                         }else{
-                            memset(bufferOut, 0, sizeof(bufferOut));
-                            sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
-                            write(clientesd,bufferOut,sizeof(bufferOut));
+                            if(strncmp( cmdRcv, OPR_PORT, (sizeof(OPR_PORT)-1) ) == 0){
+                                printf("Llegue al PORT\n");
+                                printf("recibi PORT: %s\n",bufferIn);
+                            }else{
+                                memset(bufferOut, 0, sizeof(bufferOut));
+                                sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
+                                write(clientesd,bufferOut,sizeof(bufferOut));}
                         }
                         
                     }

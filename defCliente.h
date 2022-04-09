@@ -9,6 +9,7 @@
 #define CMD_QUIT "QUIT"
 #define CMD_GET "get"
 #define CMD_RETR "RETR"
+#define CMD_PORT "PORT"
 #define CMD_USER "USER"
 #define CMD_PASS "PASS"
 #define CMD_OKQUIT "OKQUIT"
@@ -18,6 +19,8 @@
 #define ERR_CNNT_SERV   2
 #define ERR_SENDCLIENT  3
 #define ERR_RECVCLIENT  4
+#define ERR_BIND        5
+#define ERR_LISTEN      6
 #define ERR_ARGS        20
 
 int initSocket(char * ip, char * port, struct sockaddr_in * add);
@@ -27,3 +30,4 @@ void respCmd(int sockd);
 unsigned int codeRecv(char * c);
 int clientAuntheticate(int s);
 void extCmdParam(char * buffer, char * c, char * p);
+void formatIpPort(char * strOut, char * ip, int port);
