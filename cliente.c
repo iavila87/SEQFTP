@@ -132,7 +132,7 @@ int main(int argc, char* argv[]){
             printf("mi ip de datos es: %s\n",iplocal);
             printf("mi puerto de datos es: %d\n", ntohs(addrLocalSock.sin_port));
 
-            if(listen(sdData,1)<0){
+            if(listen(sdData,2)<0){
                 perror("Fallo listen.\n");
                 exit(ERR_LISTEN);
             }
@@ -143,11 +143,16 @@ int main(int argc, char* argv[]){
             respCmd(sd);
             // Me quedo esperando que se conecte el servidor para transferir el archivo
             if(codeRecv(bufferIn) == OP_CMMDOK){
-                int sds =accept(sdData,(struct sockaddr *)&addrLocalServ, addrLSLen);
-                if(sds < 0){
+                printf("esperando conexion del servidor\n");
+                socklen_t cli_addr_size = sizeof(addrLocalServ);
+                printf("tamaño de la estructura: %d\n",cli_addr_size);
+                int sdDataS =accept(sdData,(struct sockaddr *)&addrLocalServ, &cli_addr_size);
+                printf("sdescriptpr %d\n",sdDataS);
+                if(sdDataS < 0){
                     perror("No se puedo acceptar al cliente\n");
+                }else{
+                    printf("acepte conexion con server para los datos\n");
                 }
-
                 //soy servidor primero leo despues respondo
             }
             

@@ -25,6 +25,7 @@
 #define TXT_FILENE      ": no such file or directory"
 #define END_OK          0
 #define ERR_CREATESOCK  1
+#define ERR_CNNT_SERV   2
 #define ERR_BIND        5
 #define ERR_LISTEN      6
 #define ERR_SENDSERV    7

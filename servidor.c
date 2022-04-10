@@ -19,11 +19,14 @@ int main(int argc, char* argv[]){
     
     int sd;                                 // Socket descriptor
     int clientesd;
+    int sdData;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
     struct sockaddr_in server_data;
     char ipclient[INET_ADDRSTRLEN]; // IP con la que se conecto el cliente
+    char ipData[INET_ADDRSTRLEN]; // IP con la que se conecto el cliente para los datos
     int portclient; // puert con el que se conecto el cliente
+    int portData;
     socklen_t longStruct = sizeof(server_address);
     char * cmdRcv; // comando recibido
     char * pmtRcv; // parametro recibido
@@ -138,16 +141,34 @@ int main(int argc, char* argv[]){
                                 write(clientesd,bufferOut,sizeof(bufferOut));
 
                                 // Ahora debo conectarme al cliente para pasarle el archivo
-                                
-                                /*server_data.sin_family = AF_INET;            // Protocolo IPv4
-                                server_data.sin_addr.s_addr = inet_addr(ip); // IP
-                                server_data.sin_port = htons(atoi(port));    // Puerto
+                                recIpPort(ipData, &portData, bufferIn);
+                                printf("ipData: %s\n",ipData);
+                                printf("portData: %d\n",portData);
+                                server_data.sin_family = AF_INET;            // Protocolo IPv4
+                                server_data.sin_addr.s_addr = inet_addr(ipData); // IP
+                                server_data.sin_port = htons(portData);    // Puerto
 
-                                int d= socket(AF_INET, SOCK_STREAM, 0); // En sd se almacena el socket descriptor
-                                if(d < 0){
-                                    perror("No se pudo crear el socket.\n");
+                                sdData = socket(AF_INET, SOCK_STREAM, 0); // En sd se almacena el socket descriptor
+                                if(sdData < 0){
+                                    perror("No se pudo crear el socket para data.\n");
                                     exit(ERR_CREATESOCK);
-                                }*/
+                                }
+                                // veo el contenido de mi estructura
+                                socklen_t addrLSLenData = (sizeof(server_data));
+                                //getsockname(sd, (struct sockaddr *)&server_data, &addrLSLenData);
+                                //inet_ntop(AF_INET,&(server_data.sin_addr), ipData, INET_ADDRSTRLEN);
+                                printf("mi ip es antes de conectar: %s\n",ipData);
+                                printf("mi puerto es: %d\n", ntohs(server_data.sin_port));
+
+                                // Realiza la conexion con el servidor, con los argumentos recibidos
+                                if(connect(sdData, (struct sockaddr *)(&server_data), sizeof(server_data)) < 0){
+                                    perror("Conexion fallida con el servidor data.\n");
+                                    exit(ERR_CNNT_SERV);    
+                                }
+                                printf("conecte con server data\n");
+                                /*************************************/
+                                /*por aca voy*/
+                                /*************************************/
 
                             }else{
                                 memset(bufferOut, 0, sizeof(bufferOut));
@@ -177,58 +198,73 @@ void recIpPort(char * ip, int * port, char * str){
     char ip2Aux[4];
     char ip3Aux[4];
     char ip4Aux[4];
+    char sPortH[10];
+    char sPortL[10];
     memset(ip1Aux,0,sizeof(ip1Aux));
     memset(ip2Aux,0,sizeof(ip2Aux));
     memset(ip3Aux,0,sizeof(ip3Aux));
     memset(ip4Aux,0,sizeof(ip4Aux));
+    memset(sPortH,0,sizeof(sPortH));
+    memset(sPortL,0,sizeof(sPortL));
     int portH;
     int portL;
-    char sPortH[10];
-    char sPortL[10];
+    
     int n;
+    printf("str inicial: %s\n",str);
     aux = strchr(str,' '); //llego hasta "PORT "
     n = aux - str; 
     aux += 1; // estoy aca "127,0,0,1,219,23"
-    
+    printf("aux: %s\n",aux);
     auxA = aux;
+    printf("str: %s\n",str);
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "0,0,1,219,23"
+    printf("aux: %s\n",aux);
     strncpy(ip1Aux, auxA, n); // 1 octeto
+    printf("ip1Aux: %s\n",ip1Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "0,1,219,23"
+    printf("aux: %s\n",aux);
     strncpy(ip2Aux, auxA, n); // 2 octeto
+    printf("ip2Aux: %s\n",ip2Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "1,219,23"
     strncpy(ip3Aux, auxA, n); // 3 octeto
+    printf("ip3Aux: %s\n",ip3Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "219,23"
     strncpy(ip4Aux, auxA, n); // 4 octeto
+    printf("ip4Aux: %s\n",ip4Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "23"
     strncpy(sPortH, auxA, n); // sPortH parte alta
+    printf("sPortH: %s\n",sPortH);
+
     portH = atoi(sPortH);
     portH = portH << 8;
     auxA = aux;
-    aux = strchr(auxA,'\0');
+    aux = strchr(auxA,'\r');
     n = aux - auxA;
     strncpy(sPortL, auxA, n); // sPortL parte baja
+    printf("sPortL: %s\n",sPortL);
     portL = atoi(sPortL);
-
+    printf("portL: %d\n",portL);
     *port = portH + portL;
-    sprintf("%s.%s.%s.%s", ip1Aux, ip2Aux, ip3Aux, ip4Aux);
+    printf("port: %d\n",*port);
+    sprintf(ip,"%s.%s.%s.%s", ip1Aux, ip2Aux, ip3Aux, ip4Aux);
 
 }
 
