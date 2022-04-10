@@ -1,4 +1,5 @@
 #define CMD_INIT        "220"
+#define CMD_CMMDOK      "200"
 #define CMD_UPASS       "331"
 #define CMD_LOGIN       "230"
 #define CMD_FILEE       "299"
@@ -13,6 +14,7 @@
 #define OPR_PORT        "PORT"
 #define DSC_OPEN        "srvFTP"
 #define CMD_OKQUIT      "OKQUIT"
+#define TXT_CMMDOK      "Command okay"
 #define TXT_PASSREQ     "Password required for"
 #define TXT_LOGERROR    "Login incorrect"
 #define TXT_LOGIN1      "User"
@@ -36,6 +38,7 @@ void respCmd(int sockd);
 void sendCmd(int sockd, char * cmd, char * dsc);
 char * extractCmd(char * s);
 char * extract1Pmt(char * s);
+void recIpPort(char * ip, int * port, char * str);
 
 // funciones para el tratamiento de archivos
 FILE * openFile(char * path, char * type);

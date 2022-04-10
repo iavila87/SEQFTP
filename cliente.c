@@ -23,7 +23,7 @@ int main(int argc, char* argv[]){
     int flagExit = 0;
     struct sockaddr_in addrSock;
     struct sockaddr_in addrLocalSock; // estructura que contine los datos de la maquina local
-    
+    struct sockaddr_in addrLocalServ;
     socklen_t addrLSLen = (sizeof(addrLocalSock));
     char cmds[10]; // contiene el comando recibido por teclado 
     char prms[50]; // contiene el parametro recibido por teclado
@@ -139,6 +139,17 @@ int main(int argc, char* argv[]){
             // envio PORT
             formatIpPort(ipport, iplocal, ntohs(addrLocalSock.sin_port));
             sendCmd(sd, CMD_PORT, ipport);
+            // Lee el string desde el servidor
+            respCmd(sd);
+            // Me quedo esperando que se conecte el servidor para transferir el archivo
+            if(codeRecv(bufferIn) == OP_CMMDOK){
+                int sds =accept(sdData,(struct sockaddr *)&addrLocalServ, addrLSLen);
+                if(sds < 0){
+                    perror("No se puedo acceptar al cliente\n");
+                }
+
+                //soy servidor primero leo despues respondo
+            }
             
         }
     }
@@ -298,29 +309,37 @@ void formatIpPort(char * strOut, char * ip, int port){
     char ip2Aux[4];
     char ip3Aux[4];
     char ip4Aux[4];
+    memset(ip1Aux,0,sizeof(ip1Aux));
+    memset(ip2Aux,0,sizeof(ip2Aux));
+    memset(ip3Aux,0,sizeof(ip3Aux));
+    memset(ip4Aux,0,sizeof(ip4Aux));
     int portH;
     int portL;
     int n;
     aux = strchr(ip,'.');
     n = aux - ip;
-    strncpy(ip1Aux, aux, n); // 1 octeto
     aux += 1;
+    strncpy(ip1Aux, ip, n); // 1 octeto
+    
     auxA = aux;
     aux = strchr(auxA,'.');
     n = aux - auxA;
-    strncpy(ip2Aux, aux, n); // 2 octeto
     aux += 1;
+    strncpy(ip2Aux, auxA, n); // 2 octeto
+
     auxA = aux;
     aux = strchr(auxA,'.');
     n = aux - auxA;
-    strncpy(ip3Aux, aux, n); // 3 octeto
     aux += 1;
+    strncpy(ip3Aux, auxA, n); // 3 octeto
+
     auxA = aux;
     aux = strchr(auxA,'\0');
     n = aux - auxA;
-    strncpy(ip3Aux, aux, n); // 4 octeto
-    portH = (port >> 8) & 0xFF;
-    portL = port &  0xFFFFFF00;
+    aux += 1;
+    strncpy(ip4Aux, auxA, n); // 4 octeto
+    portH = (port >> 8) & 0x000000FF;
+    portL = port &  0x000000FF;
     sprintf(strOut,"%s,%s,%s,%s,%d,%d", ip1Aux, ip2Aux, ip3Aux, ip4Aux, portH, portL);
 
 }

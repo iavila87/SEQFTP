@@ -21,6 +21,7 @@ int main(int argc, char* argv[]){
     int clientesd;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
+    struct sockaddr_in server_data;
     char ipclient[INET_ADDRSTRLEN]; // IP con la que se conecto el cliente
     int portclient; // puert con el que se conecto el cliente
     socklen_t longStruct = sizeof(server_address);
@@ -122,14 +123,32 @@ int main(int argc, char* argv[]){
                                 // "550 <nombreFichero>: no such file or directory\r\n"
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 sprintf(bufferOut, "%s %s%s\r\n", CMD_FILENE, pmtRcv, TXT_FILENE);
-                                printf("llegue y voy a escribir al cliente\n");
                                 write(clientesd,bufferOut,sizeof(bufferOut));
                             }
 
                         }else{
                             if(strncmp( cmdRcv, OPR_PORT, (sizeof(OPR_PORT)-1) ) == 0){
+                                // tratamiento del comando PORT
                                 printf("Llegue al PORT\n");
                                 printf("recibi PORT: %s\n",bufferIn);
+                                memset(bufferOut, 0, sizeof(bufferOut));
+                                // 200 Command okay
+                                sprintf(bufferOut, "%s %s\r\n", CMD_CMMDOK, TXT_CMMDOK);
+                                printf("llegue y voy a escribir al cliente la resp del PORT\n");
+                                write(clientesd,bufferOut,sizeof(bufferOut));
+
+                                // Ahora debo conectarme al cliente para pasarle el archivo
+                                
+                                /*server_data.sin_family = AF_INET;            // Protocolo IPv4
+                                server_data.sin_addr.s_addr = inet_addr(ip); // IP
+                                server_data.sin_port = htons(atoi(port));    // Puerto
+
+                                int d= socket(AF_INET, SOCK_STREAM, 0); // En sd se almacena el socket descriptor
+                                if(d < 0){
+                                    perror("No se pudo crear el socket.\n");
+                                    exit(ERR_CREATESOCK);
+                                }*/
+
                             }else{
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
@@ -147,6 +166,70 @@ int main(int argc, char* argv[]){
     close(sd);
 
     return END_OK;
+}
+
+// reconstruye la ip y el puerto recibido en el comando PORT
+void recIpPort(char * ip, int * port, char * str){
+    // ejemplo: str = PORT 127,0,0,1,219,23
+    char * aux;
+    char * auxA;
+    char ip1Aux[4];
+    char ip2Aux[4];
+    char ip3Aux[4];
+    char ip4Aux[4];
+    memset(ip1Aux,0,sizeof(ip1Aux));
+    memset(ip2Aux,0,sizeof(ip2Aux));
+    memset(ip3Aux,0,sizeof(ip3Aux));
+    memset(ip4Aux,0,sizeof(ip4Aux));
+    int portH;
+    int portL;
+    char sPortH[10];
+    char sPortL[10];
+    int n;
+    aux = strchr(str,' '); //llego hasta "PORT "
+    n = aux - str; 
+    aux += 1; // estoy aca "127,0,0,1,219,23"
+    
+    auxA = aux;
+    aux = strchr(auxA,',');
+    n = aux - auxA;
+    aux += 1; // estoy aca "0,0,1,219,23"
+    strncpy(ip1Aux, auxA, n); // 1 octeto
+
+    auxA = aux;
+    aux = strchr(auxA,',');
+    n = aux - auxA;
+    aux += 1; // estoy aca "0,1,219,23"
+    strncpy(ip2Aux, auxA, n); // 2 octeto
+
+    auxA = aux;
+    aux = strchr(auxA,',');
+    n = aux - auxA;
+    aux += 1; // estoy aca "1,219,23"
+    strncpy(ip3Aux, auxA, n); // 3 octeto
+
+    auxA = aux;
+    aux = strchr(auxA,',');
+    n = aux - auxA;
+    aux += 1; // estoy aca "219,23"
+    strncpy(ip4Aux, auxA, n); // 4 octeto
+
+    auxA = aux;
+    aux = strchr(auxA,',');
+    n = aux - auxA;
+    aux += 1; // estoy aca "23"
+    strncpy(sPortH, auxA, n); // sPortH parte alta
+    portH = atoi(sPortH);
+    portH = portH << 8;
+    auxA = aux;
+    aux = strchr(auxA,'\0');
+    n = aux - auxA;
+    strncpy(sPortL, auxA, n); // sPortL parte baja
+    portL = atoi(sPortL);
+
+    *port = portH + portL;
+    sprintf("%s.%s.%s.%s", ip1Aux, ip2Aux, ip3Aux, ip4Aux);
+
 }
 
 
