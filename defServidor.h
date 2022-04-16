@@ -1,5 +1,6 @@
 #define CMD_INIT        "220"
 #define CMD_CMMDOK      "200"
+#define CMD_TRNSFOK     "226"
 #define CMD_UPASS       "331"
 #define CMD_LOGIN       "230"
 #define CMD_FILEE       "299"
@@ -13,8 +14,10 @@
 #define OPR_RETR        "RETR"
 #define OPR_PORT        "PORT"
 #define DSC_OPEN        "srvFTP"
-#define CMD_OKQUIT      "OKQUIT"
+#define CMD_OKQUIT      "221"
+#define TXT_OKQUIT      "Goodbye"
 #define TXT_CMMDOK      "Command okay"
+#define TXT_TRNSFOK     "Transfer complete"
 #define TXT_PASSREQ     "Password required for"
 #define TXT_LOGERROR    "Login incorrect"
 #define TXT_LOGIN1      "User"
@@ -30,7 +33,8 @@
 #define ERR_LISTEN      6
 #define ERR_SENDSERV    7
 #define ERR_RECVSERV    8
-#define ERR_STATFILE    19
+#define ERR_OPNFILE     18
+#define ERR_STATFILE    19 
 #define ERR_ARGS        20
 
 int initSocket(char * ip, char * port, struct sockaddr_in * add, socklen_t l);

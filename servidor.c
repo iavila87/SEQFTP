@@ -9,6 +9,7 @@
 
 char bufferOut[64];
 char bufferIn[64];
+char bufferData[512];
 
 int main(int argc, char* argv[]){
     
@@ -33,6 +34,10 @@ int main(int argc, char* argv[]){
     char * fUser; // contiene el user en cuestion
     char * fPass; // contiene el password leido desde el archivo
     FILE * file; // contiene la struct que maneja el archivo
+    FILE * fSend; // contiene la struct que maneja el archivo de envio
+    char fileName[50]; // nombre del archivo solicitado;
+    int fileSize; // tamaño del archivo solicitado;
+    char bufferData[512]; // buffer utilizado para el envio de archivos
 
     sd = initSocket("127.0.0.1", argv[1], &server_address, longStruct);
 
@@ -60,7 +65,7 @@ int main(int argc, char* argv[]){
             if(strncmp( cmdRcv, OPR_QUIT, (sizeof(OPR_QUIT)-1) ) == 0){
                 // Tratamiento comando QUIT
                 memset(bufferOut, 0, sizeof(bufferOut));
-                sprintf(bufferOut, "%s\r\n",CMD_OKQUIT);
+                sprintf(bufferOut, "%s %s\r\n",CMD_OKQUIT, TXT_OKQUIT);
                 if(write(clientesd,bufferOut,sizeof(bufferOut)) < 0){
                     perror("Error en la escritura final\r\n");
                 }
@@ -109,16 +114,16 @@ int main(int argc, char* argv[]){
                     }else{
                         if(strncmp( cmdRcv, OPR_RETR, (sizeof(OPR_RETR)-1) ) == 0){
                             // Tratamiento comando RETR
-                            printf("Llegue a RETR\n");
+                            
                             pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
-                            printf("el parametro recibido es: %s\n", pmtRcv);
-                            printf("tamaño: %ld\n", strlen(pmtRcv));
                             if(existFile(pmtRcv)){
+                                memset(fileName, 0, sizeof(fileName));
+                                sprintf(fileName, "%s", pmtRcv); // almaceno el nombre del archivo
+                                fileSize = sizeFile(pmtRcv);     // almaceno el tamaño del archivo
                                 // si existe el archivo respondo al cliente 
                                 // "299 File <nombreArchivo> size <tamaño> bytes\r\n"
                                 memset(bufferOut, 0, sizeof(bufferOut));
-                                sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, pmtRcv, TXT_FILEE2, sizeFile(pmtRcv), TXT_FILEE3);
-                                printf("llegue y voy a escribir al cliente\n");
+                                sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, fileName, TXT_FILEE2, fileSize, TXT_FILEE3);
                                 write(clientesd,bufferOut,sizeof(bufferOut));
 
                             }else{
@@ -132,18 +137,14 @@ int main(int argc, char* argv[]){
                         }else{
                             if(strncmp( cmdRcv, OPR_PORT, (sizeof(OPR_PORT)-1) ) == 0){
                                 // tratamiento del comando PORT
-                                printf("Llegue al PORT\n");
-                                printf("recibi PORT: %s\n",bufferIn);
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 // 200 Command okay
                                 sprintf(bufferOut, "%s %s\r\n", CMD_CMMDOK, TXT_CMMDOK);
-                                printf("llegue y voy a escribir al cliente la resp del PORT\n");
                                 write(clientesd,bufferOut,sizeof(bufferOut));
 
                                 // Ahora debo conectarme al cliente para pasarle el archivo
                                 recIpPort(ipData, &portData, bufferIn);
-                                printf("ipData: %s\n",ipData);
-                                printf("portData: %d\n",portData);
+                            
                                 server_data.sin_family = AF_INET;            // Protocolo IPv4
                                 server_data.sin_addr.s_addr = inet_addr(ipData); // IP
                                 server_data.sin_port = htons(portData);    // Puerto
@@ -153,22 +154,62 @@ int main(int argc, char* argv[]){
                                     perror("No se pudo crear el socket para data.\n");
                                     exit(ERR_CREATESOCK);
                                 }
-                                // veo el contenido de mi estructura
+                                
                                 socklen_t addrLSLenData = (sizeof(server_data));
-                                //getsockname(sd, (struct sockaddr *)&server_data, &addrLSLenData);
-                                //inet_ntop(AF_INET,&(server_data.sin_addr), ipData, INET_ADDRSTRLEN);
-                                printf("mi ip es antes de conectar: %s\n",ipData);
-                                printf("mi puerto es: %d\n", ntohs(server_data.sin_port));
 
                                 // Realiza la conexion con el servidor, con los argumentos recibidos
                                 if(connect(sdData, (struct sockaddr *)(&server_data), sizeof(server_data)) < 0){
                                     perror("Conexion fallida con el servidor data.\n");
                                     exit(ERR_CNNT_SERV);    
                                 }
-                                printf("conecte con server data\n");
-                                /*************************************/
-                                /*por aca voy*/
-                                /*************************************/
+                                
+                                fSend = openFile(fileName,"rb"); // abro el archivo a transferir
+                                if(fSend == NULL){
+                                    perror("Error lectura archivo\n");
+                                    exit(ERR_OPNFILE);
+                                }
+                                int cSize = fileSize;
+                                
+                                memset(bufferData, 0, sizeof(bufferData));
+
+                                while(cSize>=0){
+                                    if(cSize <=512){
+                                        while(fread(bufferData,1,cSize,fSend)!=NULL){
+                                            
+                                            if (write(sdData,bufferData,cSize)<0){
+                                                perror("Error al transferir el archivo\n");
+                                                exit(ERR_SENDSERV);
+                                            }
+                                            
+                                            memset(bufferData,0,sizeof(bufferData));
+                                        }
+                                        cSize=-1;
+                                        
+                                    }else{   
+                                        while(fread(bufferData,1,512,fSend)!=NULL){
+                                            
+                                            if (write(sdData,bufferData,sizeof(bufferData))<0){
+                                                perror("Error al transferir el archivo\n");
+                                                exit(ERR_SENDSERV);
+                                            }
+                                            
+                                            memset(bufferData, 0, sizeof(bufferData));
+                                        }
+                                        cSize = cSize - 512;
+                                        if(cSize < 0){
+                                            cSize = 512 + cSize;
+                                        }
+                                    
+                                        
+                                    }
+                                }
+
+                                memset(bufferOut, 0, sizeof(bufferOut));
+                                sprintf(bufferOut, "%s %s\r\n", CMD_TRNSFOK, TXT_TRNSFOK);
+                                if(write(clientesd,bufferOut,sizeof(bufferOut)) < 0){
+                                        perror("No se pudo escribir.\n");
+                                        exit(ERR_SENDSERV);
+                                }
 
                             }else{
                                 memset(bufferOut, 0, sizeof(bufferOut));
@@ -208,50 +249,40 @@ void recIpPort(char * ip, int * port, char * str){
     memset(sPortL,0,sizeof(sPortL));
     int portH;
     int portL;
-    
     int n;
-    printf("str inicial: %s\n",str);
+
     aux = strchr(str,' '); //llego hasta "PORT "
     n = aux - str; 
     aux += 1; // estoy aca "127,0,0,1,219,23"
-    printf("aux: %s\n",aux);
     auxA = aux;
-    printf("str: %s\n",str);
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "0,0,1,219,23"
-    printf("aux: %s\n",aux);
     strncpy(ip1Aux, auxA, n); // 1 octeto
-    printf("ip1Aux: %s\n",ip1Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "0,1,219,23"
-    printf("aux: %s\n",aux);
     strncpy(ip2Aux, auxA, n); // 2 octeto
-    printf("ip2Aux: %s\n",ip2Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "1,219,23"
     strncpy(ip3Aux, auxA, n); // 3 octeto
-    printf("ip3Aux: %s\n",ip3Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "219,23"
     strncpy(ip4Aux, auxA, n); // 4 octeto
-    printf("ip4Aux: %s\n",ip4Aux);
 
     auxA = aux;
     aux = strchr(auxA,',');
     n = aux - auxA;
     aux += 1; // estoy aca "23"
     strncpy(sPortH, auxA, n); // sPortH parte alta
-    printf("sPortH: %s\n",sPortH);
 
     portH = atoi(sPortH);
     portH = portH << 8;
@@ -259,11 +290,8 @@ void recIpPort(char * ip, int * port, char * str){
     aux = strchr(auxA,'\r');
     n = aux - auxA;
     strncpy(sPortL, auxA, n); // sPortL parte baja
-    printf("sPortL: %s\n",sPortL);
     portL = atoi(sPortL);
-    printf("portL: %d\n",portL);
     *port = portH + portL;
-    printf("port: %d\n",*port);
     sprintf(ip,"%s.%s.%s.%s", ip1Aux, ip2Aux, ip3Aux, ip4Aux);
 
 }
@@ -410,16 +438,13 @@ char * searchUserFile(FILE * f, char * s){
 // 1=> Existe
 // 0=> No Existe
 int existFile(char * path){
-    printf("entre al existFile\n");
+    
     FILE * file = openFile(path, "r");
-    printf("pase openFile\n");
+    
     if (openFile(path, "r") == NULL){
-        //closeFile(file);
-        printf("retorno 0\n");
         return 0;
     }else{
         closeFile(file);
-        printf("retorno 1\n");
         return 1;
     }
     
