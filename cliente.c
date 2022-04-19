@@ -69,8 +69,8 @@ int main(int argc, char* argv[]){
             bufferOut[strlen (bufferOut) - 1] = '\0';
         }
 
-        extCmdParam(bufferOut, cmds, prms);
-        
+        extCmdParam(bufferOut, cmds, prms, sizeof(cmds), sizeof(prms));
+
         if(strcmp(bufferOut, CMD_QUSR) == 0){
             sendCmd(sd, CMD_QUIT, DSC_OPEN);
         }else{
@@ -315,17 +315,18 @@ void respData(int sockd, FILE * f, int fSize){
 	}
 }
 
-void extCmdParam(char * buffer, char * c, char * p){
+void extCmdParam(char * buffer, char * c, char * p, int sizec, int sizep){
     char nb[64];
     char * aux;
     int n;  // contiene la longitud de la cadena a extraer
 
-    memset(c, 0, sizeof(c)); // Blanqueo c
-    memset(p, 0, sizeof(p)); // Blanqueo p
+    memset(c, 0, sizec); // Blanqueo c
+    memset(p, 0, sizep); // Blanqueo p
     aux = strchr(buffer,' ');
-    
-    if(aux == NULL){
-        strcpy(c,buffer);
+
+    if((int)aux == NULL){
+        n = 4;
+        strncpy(c,buffer, n);
     }else{
         n = aux-buffer;
         strncpy(c, buffer, n);
@@ -333,8 +334,6 @@ void extCmdParam(char * buffer, char * c, char * p){
     n += 1;
     strcpy(p,buffer+n);
 
-    //printf("cmmd: %s\n", c);
-    //printf("pram: %s\n", p);
 }
 
 //Retorna el codigo recibido

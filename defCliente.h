@@ -35,7 +35,7 @@ void respCmd(int sockd);
 void respData(int sockd, FILE * f, int fSize);
 unsigned int codeRecv(char * c);
 int clientAuntheticate(int s);
-void extCmdParam(char * buffer, char * c, char * p);
+void extCmdParam(char * buffer, char * c, char * p, int sizec, int sizep);
 void formatIpPort(char * strOut, char * ip, int port);
 void extSize(int * fileSize, char * buff);
 FILE * openFile(char * path, char * type);
