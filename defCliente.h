@@ -10,6 +10,8 @@
 #define CMD_QUIT "QUIT"
 #define CMD_QUSR "quit"
 #define CMD_GET  "get"
+#define CMD_DIR  "dir"
+#define CMD_NLST "NLST"
 #define CMD_RETR "RETR"
 #define CMD_PORT "PORT"
 #define CMD_USER "USER"

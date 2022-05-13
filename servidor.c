@@ -34,7 +34,7 @@ int main(int argc, char* argv[]){
     char * fUser; // contiene el user en cuestion
     char * fPass; // contiene el password leido desde el archivo
     FILE * file; // contiene la struct que maneja el archivo
-    FILE * fSend; // contiene la struct que maneja el archivo de envio
+    FILE * fSend = NULL; // contiene la struct que maneja el archivo de envio
     char fileName[50]; // nombre del archivo solicitado;
     int fileSize; // tamaño del archivo solicitado;
     char bufferData[512]; // buffer utilizado para el envio de archivos
@@ -162,7 +162,11 @@ int main(int argc, char* argv[]){
                                     perror("Conexion fallida con el servidor data.\n");
                                     exit(ERR_CNNT_SERV);    
                                 }
-                                
+
+                                // Envio archivo
+                                //sdData = sdd, fs = fsend, fileName = fname, fileSize = fsize
+                                sendFile(sdData, fSend, fileName, fileSize);
+                                /*
                                 fSend = openFile(fileName,"rb"); // abro el archivo a transferir
                                 if(fSend == NULL){
                                     perror("Error lectura archivo\n");
@@ -171,7 +175,7 @@ int main(int argc, char* argv[]){
                                 int cSize = fileSize;
                                 
                                 memset(bufferData, 0, sizeof(bufferData));
-
+                                
                                 while(cSize>=0){
                                     if(cSize <=512){
                                         while(fread(bufferData,1,cSize,fSend)!=NULL){
@@ -202,7 +206,7 @@ int main(int argc, char* argv[]){
                                     
                                         
                                     }
-                                }
+                                }*/
 
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 sprintf(bufferOut, "%s %s\r\n", CMD_TRNSFOK, TXT_TRNSFOK);
@@ -212,9 +216,17 @@ int main(int argc, char* argv[]){
                                 }
 
                             }else{
-                                memset(bufferOut, 0, sizeof(bufferOut));
-                                sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
-                                write(clientesd,bufferOut,sizeof(bufferOut));}
+                                if(strncmp( cmdRcv, OPR_NLST, (sizeof(OPR_NLST)-1) ) == 0){
+                                    // aca ver la lista de directorios
+
+
+                                }else{
+                                    memset(bufferOut, 0, sizeof(bufferOut));
+                                    sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
+                                    write(clientesd,bufferOut,sizeof(bufferOut));
+                                }
+                                
+                            }
                         }
                         
                     }
@@ -228,6 +240,44 @@ int main(int argc, char* argv[]){
     close(sd);
 
     return END_OK;
+}
+
+// envia un archivo
+void sendFile(int sdd, FILE * fs, char * fname, int fsize){
+    fs = openFile(fname,"rb"); // abro el archivo a transferir
+    if(fs == NULL){
+        perror("Error lectura archivo\n");
+        exit(ERR_OPNFILE);
+    }
+    int cSize = fsize;
+    memset(bufferData, 0, sizeof(bufferData));
+
+    while(cSize>=0){
+        if(cSize <=512){
+            while(fread(bufferData,1,cSize,fs)!=NULL){
+                if (write(sdd,bufferData,cSize)<0){
+                    perror("Error al transferir el archivo\n");
+                    exit(ERR_SENDSERV);
+                }
+                                                
+                memset(bufferData,0,sizeof(bufferData));
+            }
+            cSize=-1;
+        }else{   
+            while(fread(bufferData,1,512,fs)!=NULL){
+                if (write(sdd,bufferData,sizeof(bufferData))<0){
+                    perror("Error al transferir el archivo\n");
+                    exit(ERR_SENDSERV);
+                }                            
+                memset(bufferData, 0, sizeof(bufferData));
+            }
+            cSize = cSize - 512;
+            if(cSize < 0){
+                cSize = 512 + cSize;
+            }
+        }
+    }
+    closeFile(fs);
 }
 
 // reconstruye la ip y el puerto recibido en el comando PORT

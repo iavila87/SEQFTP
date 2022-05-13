@@ -13,6 +13,7 @@
 #define OPR_PASS        "PASS"
 #define OPR_RETR        "RETR"
 #define OPR_PORT        "PORT"
+#define OPR_NLST        "NLST"
 #define DSC_OPEN        "srvFTP"
 #define CMD_OKQUIT      "221"
 #define TXT_OKQUIT      "Goodbye"
@@ -47,6 +48,7 @@ void recIpPort(char * ip, int * port, char * str);
 
 // funciones para el tratamiento de archivos
 FILE * openFile(char * path, char * type);
+void sendFile(int sdd, FILE * fs, char * fname, int fsize);
 char * searchUserFile(FILE * f, char * s);
 void closeFile(FILE * file);
 int existFile(char * path);

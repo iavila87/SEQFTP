@@ -18,7 +18,11 @@ int main(int argc, char* argv[]){
         perror("Debe introducir 2 argumentos\n");
         exit(ERR_ARGS);
     }
-    
+
+    //Prueba ls -l
+    system("ls -l");
+    //////////////
+
     FILE * fp;      // file a recibir
     int sd;         // socket descriptor
     int sdData;
@@ -33,7 +37,6 @@ int main(int argc, char* argv[]){
     char iplocal[16];
     int flagFTrnsf = 0;
     int portLocal;
-    int portData;
     char fileName[50];
     int fileSize;
     int flagErr = 0;
@@ -55,7 +58,7 @@ int main(int argc, char* argv[]){
     sendCmd(sd, DSC_OPEN, DSC_OPEN);
 
     respCmd(sd);
-    unsigned int code = codeRecv(bufferIn);
+    codeRecv(bufferIn);
     
     printf("%s",bufferIn);
     flagExit = clientAuntheticate(sd);
@@ -78,9 +81,15 @@ int main(int argc, char* argv[]){
                 sendCmd(sd, CMD_RETR, prms);
                 sprintf(fileName,"%s",prms); // almaceno el nombre del archivo
             }else{
-                printf("Comando no reconocido.\n");
-                memset(bufferOut,0,sizeof(bufferOut));
-                flagErr = 1;
+
+                if(strncmp(bufferOut, CMD_DIR, strlen(CMD_DIR)) == 0){
+                    sendCmd(sd, CMD_NLST, prms);
+                    //sprintf(fileName,"%s",prms); // almaceno el nombre del archivo
+                }else{
+                    printf("Comando no reconocido.\n");
+                    memset(bufferOut,0,sizeof(bufferOut));
+                    flagErr = 1;
+                }
             }
         }
 
@@ -101,7 +110,12 @@ int main(int argc, char* argv[]){
                     if(codeRecv(bufferIn) == OP_FILENE){
                         printf("%s", bufferIn);
                     }else{
+                        // VER como recibo lla lista de archivos
+                        //if(codeRecv(bufferIn) == OP_FILENE){
+                        //    printf("%s", bufferIn);
+                        //}else{
 
+                        //}  
                     }
                 }
             }
@@ -225,6 +239,10 @@ void sendCmd(int sockd, char * cmd, char * dsc){
                     }else{
                         if(strcmp(cmd, CMD_PORT)==0){
                             sprintf(bufferOut, "%s %s\r\n", CMD_PORT, dsc);
+                        }else{
+                            if(strcmp(cmd, CMD_NLST)==0){
+                                sprintf(bufferOut, "%s\r\n", CMD_NLST);
+                            }
                         }
                     }
                 }
@@ -316,7 +334,7 @@ void respData(int sockd, FILE * f, int fSize){
 }
 
 void extCmdParam(char * buffer, char * c, char * p, int sizec, int sizep){
-    char nb[64];
+
     char * aux;
     int n;  // contiene la longitud de la cadena a extraer
 
@@ -324,7 +342,7 @@ void extCmdParam(char * buffer, char * c, char * p, int sizec, int sizep){
     memset(p, 0, sizep); // Blanqueo p
     aux = strchr(buffer,' ');
 
-    if((int)aux == NULL){
+    if(aux == NULL){
         n = 4;
         strncpy(c,buffer, n);
     }else{
@@ -364,7 +382,7 @@ int clientAuntheticate(int s){
         if ((strlen(consoleIn) != 0) && (consoleIn[strlen (consoleIn) - 1] == '\n')){
             consoleIn[strlen (consoleIn) - 1] = '\0';
         }
-
+        
         sendCmd(s, CMD_PASS, NULL);
         respCmd(s);
         
