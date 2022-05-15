@@ -39,9 +39,33 @@ int main(int argc, char* argv[]){
     char fileName[50]; // nombre del archivo solicitado;
     int fileSize; // tamaño del archivo solicitado;
     char bufferData[512]; // buffer utilizado para el envio de archivos
-    char cmdSys[512]; // buffer utilizado para almacenar el path de un directorio
+    char path[512]; // buffer utilizado para almacenar el path de un directorio
+    char cmdSys[512]; // buffer utilizado para almacenar el path de un directorio y un comando
 
     sd = initSocket("127.0.0.1", argv[1], &server_address, longStruct);
+
+    system("pwd > pwd.temp");
+    // abro archivo de pwd.temp para agregar la ruta recibida
+    FILE * fp = openFile("pwd.temp", "r");
+
+    struct stat sb;
+    if(stat("pwd.temp", &sb) == -1) {
+        perror("stat");
+    }
+    // leo el archivo
+    char* fileTemp = malloc(sb.st_size);
+    fread(fileTemp, sb.st_size, 1, fp);
+
+    printf("antes: %s\n", fileTemp);
+    if ((strlen(fileTemp) != 0) && (fileTemp[strlen (fileTemp) - 1] == '\n')){
+        fileTemp[strlen (fileTemp) - 1] = '\0';
+    }
+    memset(path, 0 , sizeof(path));
+    sprintf(path, "%s", fileTemp);
+    printf("path: %s\n", path);
+    
+    fclose(fp);
+    free(fileTemp);
 
     while(1){
         printf("Esperando conexion de un cliente...\n");
@@ -141,6 +165,7 @@ int main(int argc, char* argv[]){
 
                         }else{
                             if(strncmp( cmdRcv, OPR_PORT, (sizeof(OPR_PORT)-1) ) == 0){
+                                printf("entre al PORT\n");
                                 // tratamiento del comando PORT
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 // 200 Command okay
@@ -180,8 +205,11 @@ int main(int argc, char* argv[]){
 
                             }else{
                                 if(strncmp( cmdRcv, OPR_NLST, (sizeof(OPR_NLST)-1) ) == 0){
+                                    printf("entre al NLST\n");
                                     // creo un archivo con lo que devuelve ls
-                                    system("ls -l > ls.temp");
+                                    memset(cmdSys, 0 , sizeof(cmdSys));
+                                    sprintf(cmdSys,"ls -l %s > ls.temp", path);
+                                    system(cmdSys);
                                     
                                     memset(fileName, 0, sizeof(fileName));
                                     sprintf(fileName, "%s", "ls.temp"); // almaceno el nombre del archivo
@@ -190,6 +218,7 @@ int main(int argc, char* argv[]){
                                     memset(bufferOut, 0, sizeof(bufferOut));
                                     //sprintf(bufferOut, "%s %s\r\n", CMD_FOK, TXT_FOK);
                                     sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, fileName, TXT_FILEE2, fileSize, TXT_FILEE3);
+                                    printf("bufferOut: %s\n", bufferOut);
                                     write(clientesd,bufferOut,sizeof(bufferOut));
 
                                 }else{
@@ -200,11 +229,30 @@ int main(int argc, char* argv[]){
                                         memset(pmtRcv, 0, sizeof(pmtRcv));
                                         printf("CWD pathant: %s\n", pmtRcv);
                                         extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
-                                        printf("CWD path: %s\n", pmtRcv);
-                                        printf("CWD bufferIn: %s\n", bufferIn);
-                                        sprintf(cmdSys,"cd %s > cd.temp", pmtRcv);
+                                        
+                                        if(strncmp(pmtRcv, "..", 2) == 0){
+                                            char * auxChar = strrchr(path, '/');
+                                            char auxfileTemp[100];
+                                            int auxN = auxChar - path;
+                                            memset(auxfileTemp, 0 , sizeof(auxfileTemp));
+                                            strncpy(auxfileTemp, path, auxN);
+                                            memset(path, 0 , sizeof(path));
+                                            sprintf(path, "%s", auxfileTemp);
+                                        }else{
+                                            
+                                            sprintf(path, "%s/%s", path, pmtRcv);
+                                        }
+                            
+                                        printf("path: %s\n", path);
+                                        memset(cmdSys, 0 , sizeof(cmdSys));
+                                        sprintf(cmdSys,"cd %s", path);
+                                        printf("cmdSys: %s\n", cmdSys);
+                                        
+                                        
+
                                         if(system(cmdSys) == 0){
                                             // respuesta OK
+                                            printf("system(cmdSys) == 0\n");
                                             memset(bufferOut, 0, sizeof(bufferOut));
                                             sprintf(bufferOut, "%s %s %s\r\n", CMD_CWDOK, OPR_CWD, TXT_CDMNDOK);
                                             write(clientesd,bufferOut,sizeof(bufferOut));
@@ -213,10 +261,6 @@ int main(int argc, char* argv[]){
                                             
                                         }
                                         
-                                        // respuesta
-                                        memset(bufferOut, 0, sizeof(bufferOut));
-                                        sprintf(bufferOut, "%s %s %s\r\n", CMD_CWDOK, OPR_CWD, TXT_CDMNDOK);
-                                        write(clientesd,bufferOut,sizeof(bufferOut));
                                     }else{
                                         memset(bufferOut, 0, sizeof(bufferOut));
                                         sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
@@ -411,7 +455,7 @@ char * extractCmd(char * s){
     int n;
     // se libera la memoria luego en el flujo principal
     char * d = malloc(5); // reservo 4 bytes para los caracteres del comando y el 5 para \0
-    memset(d, 0, sizeof(5));
+    memset(d, 0, 5);
     
     //printf("soy n del extractCmd %s\n",d);
     c = strchr(s,' ');

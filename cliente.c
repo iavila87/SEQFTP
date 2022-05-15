@@ -71,7 +71,7 @@ int main(int argc, char* argv[]){
         }
 
         extCmdParam(bufferOut, cmds, prms, sizeof(cmds), sizeof(prms));
-
+        printf("bufferOut: %s\n", bufferOut);
         if(strcmp(bufferOut, CMD_QUSR) == 0){
             sendCmd(sd, CMD_QUIT, DSC_OPEN);
         }else{
@@ -82,6 +82,7 @@ int main(int argc, char* argv[]){
             }else{
 
                 if(strncmp(bufferOut, CMD_DIR, strlen(CMD_DIR)) == 0){
+                    printf("entre a DIR\n");
                     sendCmd(sd, CMD_NLST, prms);
                     sprintf(fileName,"%s","ls.temp"); // almaceno el nombre del archivo
                     flagType = 2;
@@ -101,6 +102,7 @@ int main(int argc, char* argv[]){
         if(flagErr == 0){
             // Lee el string desde el servidor
             respCmd(sd);
+            printf("bufferIn: %s\n", bufferIn);
             if(strncmp(bufferIn, CMD_OKQUIT,(sizeof(CMD_OKQUIT))-1) == 0){
                 flagExit = 1;
                 printf("%s\n",bufferIn);
@@ -130,7 +132,7 @@ int main(int argc, char* argv[]){
 
 
         if(flagFTrnsf){
-            
+            printf("entre al flagFTrnsf\n");
             // recupero el puerto actual para abrir el siguiente
             // de estar ocupado abro uno libre
             portLocal = ntohs(addrLocalSock.sin_port);
@@ -165,6 +167,7 @@ int main(int argc, char* argv[]){
                 // si es el archivo usado para el directorio lo leo y lo imprimo por pantalla
                 // y luego lo elimino
                 if(flagType == 2){
+                    
                     fp = openFile(fileName, "r");
 
                     struct stat sb;
@@ -184,7 +187,8 @@ int main(int argc, char* argv[]){
                     if(remove("ls.temp")!=0){
                         perror("Error: No se pudo eliminar el archivo\n");
                     } 
-                        
+                    
+                    
                 }
                 
                 // cerrar conexion con socket data
@@ -274,7 +278,9 @@ void sendCmd(int sockd, char * cmd, char * dsc){
                             sprintf(bufferOut, "%s %s\r\n", CMD_PORT, dsc);
                         }else{
                             if(strcmp(cmd, CMD_NLST)==0){
+                                printf("Entre al NLST\n");
                                 sprintf(bufferOut, "%s\r\n", CMD_NLST);
+                                
                             }else{
                                 //CMD_CWD
                                 if(strcmp(cmd, CMD_CWD)==0){
