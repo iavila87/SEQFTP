@@ -28,16 +28,18 @@ int main(int argc, char* argv[]){
     char ipData[INET_ADDRSTRLEN]; // IP con la que se conecto el cliente para los datos
     int portclient; // puert con el que se conecto el cliente
     int portData;
+    int flagPort;
     socklen_t longStruct = sizeof(server_address);
     char * cmdRcv; // comando recibido
-    char * pmtRcv; // parametro recibido
-    char * fUser; // contiene el user en cuestion
+    char pmtRcv[100]; // parametro recibido
+    char fUser[100]; // contiene el user en cuestion
     char * fPass; // contiene el password leido desde el archivo
     FILE * file; // contiene la struct que maneja el archivo
     FILE * fSend = NULL; // contiene la struct que maneja el archivo de envio
     char fileName[50]; // nombre del archivo solicitado;
     int fileSize; // tamaño del archivo solicitado;
     char bufferData[512]; // buffer utilizado para el envio de archivos
+    char cmdSys[512]; // buffer utilizado para almacenar el path de un directorio
 
     sd = initSocket("127.0.0.1", argv[1], &server_address, longStruct);
 
@@ -57,11 +59,12 @@ int main(int argc, char* argv[]){
         //printf("bufferOut: %s",bufferOut);
     
         while(1){
-        
+            
+            memset(bufferIn, 0, sizeof(bufferIn));
             respCmd(clientesd);
             
             cmdRcv = extractCmd(bufferIn);
-        
+            printf("cmdRcv: %s\n", cmdRcv);
             if(strncmp( cmdRcv, OPR_QUIT, (sizeof(OPR_QUIT)-1) ) == 0){
                 // Tratamiento comando QUIT
                 memset(bufferOut, 0, sizeof(bufferOut));
@@ -78,7 +81,7 @@ int main(int argc, char* argv[]){
             }else{
                 if(strncmp( cmdRcv, OPR_USER, (sizeof(OPR_USER)-1) ) == 0){
                     // Tratamiento comando USER
-                    fUser = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
+                    extract1Pmt(bufferIn, fUser); // extrae el parametro del buffer de entrada
                     file = openFile("ftpusers", "r");
                     fPass = searchUserFile(file, fUser);
                     if(fPass == NULL){
@@ -97,7 +100,7 @@ int main(int argc, char* argv[]){
                 }else{
                     if(strncmp( cmdRcv, OPR_PASS, (sizeof(OPR_PASS)-1) ) == 0){
                         // Tratamiento comando PASS
-                        pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
+                        extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
                         if(strncmp(fPass, pmtRcv, strlen(fPass)-1) == 0){
                             //responder logueo exitoso
                             memset(bufferOut, 0, sizeof(bufferOut));
@@ -115,7 +118,7 @@ int main(int argc, char* argv[]){
                         if(strncmp( cmdRcv, OPR_RETR, (sizeof(OPR_RETR)-1) ) == 0){
                             // Tratamiento comando RETR
                             
-                            pmtRcv = extract1Pmt(bufferIn); // extrae el parametro del buffer de entrada
+                            extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
                             if(existFile(pmtRcv)){
                                 memset(fileName, 0, sizeof(fileName));
                                 sprintf(fileName, "%s", pmtRcv); // almaceno el nombre del archivo
@@ -125,6 +128,8 @@ int main(int argc, char* argv[]){
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, fileName, TXT_FILEE2, fileSize, TXT_FILEE3);
                                 write(clientesd,bufferOut,sizeof(bufferOut));
+                                // asigno un valor a la flag para luego en port reconocer la accion.
+                                flagPort = 1; // Ver si lo uso o no
 
                             }else{
                                 // si no existe el archivo respondo al cliente
@@ -164,50 +169,8 @@ int main(int argc, char* argv[]){
                                 }
 
                                 // Envio archivo
-                                //sdData = sdd, fs = fsend, fileName = fname, fileSize = fsize
                                 sendFile(sdData, fSend, fileName, fileSize);
-                                /*
-                                fSend = openFile(fileName,"rb"); // abro el archivo a transferir
-                                if(fSend == NULL){
-                                    perror("Error lectura archivo\n");
-                                    exit(ERR_OPNFILE);
-                                }
-                                int cSize = fileSize;
-                                
-                                memset(bufferData, 0, sizeof(bufferData));
-                                
-                                while(cSize>=0){
-                                    if(cSize <=512){
-                                        while(fread(bufferData,1,cSize,fSend)!=NULL){
-                                            
-                                            if (write(sdData,bufferData,cSize)<0){
-                                                perror("Error al transferir el archivo\n");
-                                                exit(ERR_SENDSERV);
-                                            }
-                                            
-                                            memset(bufferData,0,sizeof(bufferData));
-                                        }
-                                        cSize=-1;
-                                        
-                                    }else{   
-                                        while(fread(bufferData,1,512,fSend)!=NULL){
-                                            
-                                            if (write(sdData,bufferData,sizeof(bufferData))<0){
-                                                perror("Error al transferir el archivo\n");
-                                                exit(ERR_SENDSERV);
-                                            }
-                                            
-                                            memset(bufferData, 0, sizeof(bufferData));
-                                        }
-                                        cSize = cSize - 512;
-                                        if(cSize < 0){
-                                            cSize = 512 + cSize;
-                                        }
-                                    
-                                        
-                                    }
-                                }*/
-
+                                // Preparo buffer de salida
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 sprintf(bufferOut, "%s %s\r\n", CMD_TRNSFOK, TXT_TRNSFOK);
                                 if(write(clientesd,bufferOut,sizeof(bufferOut)) < 0){
@@ -217,13 +180,48 @@ int main(int argc, char* argv[]){
 
                             }else{
                                 if(strncmp( cmdRcv, OPR_NLST, (sizeof(OPR_NLST)-1) ) == 0){
-                                    // aca ver la lista de directorios
-
+                                    // creo un archivo con lo que devuelve ls
+                                    system("ls -l > ls.temp");
+                                    
+                                    memset(fileName, 0, sizeof(fileName));
+                                    sprintf(fileName, "%s", "ls.temp"); // almaceno el nombre del archivo
+                                    fileSize = sizeFile("ls.temp");     // almaceno el tamaño del archivo 
+                                    // "150 File <nombreArchivo> size <tamaño> bytes\r\n"
+                                    memset(bufferOut, 0, sizeof(bufferOut));
+                                    //sprintf(bufferOut, "%s %s\r\n", CMD_FOK, TXT_FOK);
+                                    sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, fileName, TXT_FILEE2, fileSize, TXT_FILEE3);
+                                    write(clientesd,bufferOut,sizeof(bufferOut));
 
                                 }else{
-                                    memset(bufferOut, 0, sizeof(bufferOut));
-                                    sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
-                                    write(clientesd,bufferOut,sizeof(bufferOut));
+                                    
+                                    if(strncmp( cmdRcv, OPR_CWD, (sizeof(OPR_CWD)-1) ) == 0){
+                                        // Extrae el path
+                                        printf("Llegue al CWD\n");
+                                        memset(pmtRcv, 0, sizeof(pmtRcv));
+                                        printf("CWD pathant: %s\n", pmtRcv);
+                                        extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
+                                        printf("CWD path: %s\n", pmtRcv);
+                                        printf("CWD bufferIn: %s\n", bufferIn);
+                                        sprintf(cmdSys,"cd %s > cd.temp", pmtRcv);
+                                        if(system(cmdSys) == 0){
+                                            // respuesta OK
+                                            memset(bufferOut, 0, sizeof(bufferOut));
+                                            sprintf(bufferOut, "%s %s %s\r\n", CMD_CWDOK, OPR_CWD, TXT_CDMNDOK);
+                                            write(clientesd,bufferOut,sizeof(bufferOut));
+                                        }else{
+                                            // respuesta ERROR 
+                                            
+                                        }
+                                        
+                                        // respuesta
+                                        memset(bufferOut, 0, sizeof(bufferOut));
+                                        sprintf(bufferOut, "%s %s %s\r\n", CMD_CWDOK, OPR_CWD, TXT_CDMNDOK);
+                                        write(clientesd,bufferOut,sizeof(bufferOut));
+                                    }else{
+                                        memset(bufferOut, 0, sizeof(bufferOut));
+                                        sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
+                                        write(clientesd,bufferOut,sizeof(bufferOut));
+                                    }
                                 }
                                 
                             }
@@ -429,22 +427,27 @@ char * extractCmd(char * s){
 
 
 // retorna el parametro recibido en el buffer de entrada
-char * extract1Pmt(char * s){
+void extract1Pmt(char * s, char * p){
     // se libera la memoria luego en el flujo principal
     char * d = malloc(100); // reservo 100 bytes para paremetros
     char * r;
     int end;
-    memset(d, 0, sizeof(100));
+    memset(d, 0, 100);
 
     r = strchr(s,' ');
     r+=1;
     end = strchr(r,'\r') - r;
+    printf("r: %s\n",r);
+    printf("end: %d\n",end);
+    printf("d: %s\n",d);
     strncpy(d,r,end);
+    printf("dDes: %s\n",d);
+    
     
     if(d == NULL){
-        return NULL;
+        //*p = 0;
     }else{
-        return d;
+        strncpy(p, d, strlen(d));
     }
 }
 

@@ -3,6 +3,7 @@
 #include <arpa/inet.h>  //socket
 #include <string.h>     //memset
 #include <unistd.h>     //file management
+#include <sys/stat.h>   //stat
 
 #include "defCliente.h"
 
@@ -19,10 +20,6 @@ int main(int argc, char* argv[]){
         exit(ERR_ARGS);
     }
 
-    //Prueba ls -l
-    system("ls -l");
-    //////////////
-
     FILE * fp;      // file a recibir
     int sd;         // socket descriptor
     int sdData;
@@ -35,7 +32,8 @@ int main(int argc, char* argv[]){
     char cmds[10]; // contiene el comando recibido por teclado 
     char prms[50]; // contiene el parametro recibido por teclado
     char iplocal[16];
-    int flagFTrnsf = 0;
+    int flagFTrnsf = 0; // indica que debo ejecutar las funciones para transferencia de archivos
+    int flagType = 0;
     int portLocal;
     char fileName[50];
     int fileSize;
@@ -80,15 +78,22 @@ int main(int argc, char* argv[]){
             if(strncmp(bufferOut, CMD_GET, strlen(CMD_GET)) == 0){
                 sendCmd(sd, CMD_RETR, prms);
                 sprintf(fileName,"%s",prms); // almaceno el nombre del archivo
+                flagType = 1;
             }else{
 
                 if(strncmp(bufferOut, CMD_DIR, strlen(CMD_DIR)) == 0){
                     sendCmd(sd, CMD_NLST, prms);
-                    //sprintf(fileName,"%s",prms); // almaceno el nombre del archivo
+                    sprintf(fileName,"%s","ls.temp"); // almaceno el nombre del archivo
+                    flagType = 2;
                 }else{
-                    printf("Comando no reconocido.\n");
-                    memset(bufferOut,0,sizeof(bufferOut));
-                    flagErr = 1;
+
+                    if(strncmp(bufferOut, CMD_CD, strlen(CMD_CD)) == 0){
+                        sendCmd(sd, CMD_CWD, prms);
+                    }else{
+                        printf("Comando no reconocido.\n");
+                        memset(bufferOut,0,sizeof(bufferOut));
+                        flagErr = 1;
+                    }
                 }
             }
         }
@@ -110,12 +115,12 @@ int main(int argc, char* argv[]){
                     if(codeRecv(bufferIn) == OP_FILENE){
                         printf("%s", bufferIn);
                     }else{
-                        // VER como recibo lla lista de archivos
-                        //if(codeRecv(bufferIn) == OP_FILENE){
-                        //    printf("%s", bufferIn);
-                        //}else{
+                        if(codeRecv(bufferIn) == OP_CWDOK){
+                            printf("%s", bufferIn);
+                            //flagFTrnsf = 1;
+                        }else{
 
-                        //}  
+                        }
                     }
                 }
             }
@@ -147,20 +152,48 @@ int main(int argc, char* argv[]){
                 
                 // empiezo recepcion de datos
                 fp = openFile(fileName, "wb");
+                
                 // recibo el archivo
                 respData(sdDataS, fp, fileSize);
 
                 respCmd(sd);         
                 printf( "%s\n",bufferIn); // muestro que la transferencia fue exitosa
 	            
+                
                 // termine de recibir el archivo y lo cierro
                 closeFile(fp);
+                // si es el archivo usado para el directorio lo leo y lo imprimo por pantalla
+                // y luego lo elimino
+                if(flagType == 2){
+                    fp = openFile(fileName, "r");
+
+                    struct stat sb;
+                    if(stat(fileName, &sb) == -1) {
+                        perror("stat");
+                    }
+
+                    char* fileTemp = malloc(sb.st_size);
+                    fread(fileTemp, sb.st_size, 1, fp);
+
+                    printf("%s\n", fileTemp);
+
+                    fclose(fp);
+                    free(fileTemp);
+
+                    // Elimino el archivo
+                    if(remove("ls.temp")!=0){
+                        perror("Error: No se pudo eliminar el archivo\n");
+                    } 
+                        
+                }
+                
                 // cerrar conexion con socket data
                 // Cierro ambos socket de datos
                 close(sdDataS);
                 close(sdData);
             }
             flagFTrnsf = 0;
+            flagType = 0;
         }
     }
 
@@ -242,6 +275,13 @@ void sendCmd(int sockd, char * cmd, char * dsc){
                         }else{
                             if(strcmp(cmd, CMD_NLST)==0){
                                 sprintf(bufferOut, "%s\r\n", CMD_NLST);
+                            }else{
+                                //CMD_CWD
+                                if(strcmp(cmd, CMD_CWD)==0){
+                                    sprintf(bufferOut, "%s %s\r\n", CMD_CWD, dsc);
+                                }else{
+
+                                }
                             }
                         }
                     }

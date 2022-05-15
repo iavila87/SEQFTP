@@ -1,4 +1,6 @@
-#define CMD_INIT "220"
+#define CMD_INIT   "220"
+#define OP_FOK      150 // Listo para recibir el contenido del directorio actual
+#define OP_CWDOK    250 // Comando CWD correcto
 #define OP_RPASS    331 // Usuario requiere password.
 #define OP_LOGIN    230 // Usuario logueado correctamente.
 #define OP_LOGOUT   530 // Usuario No logueado correctamente.
@@ -11,6 +13,8 @@
 #define CMD_QUSR "quit"
 #define CMD_GET  "get"
 #define CMD_DIR  "dir"
+#define CMD_CD   "cd"
+#define CMD_CWD  "CWD"
 #define CMD_NLST "NLST"
 #define CMD_RETR "RETR"
 #define CMD_PORT "PORT"
