@@ -247,8 +247,6 @@ int main(int argc, char* argv[]){
                                         memset(cmdSys, 0 , sizeof(cmdSys));
                                         sprintf(cmdSys,"cd %s", path);
                                         printf("cmdSys: %s\n", cmdSys);
-                                        
-                                        
 
                                         if(system(cmdSys) == 0){
                                             // respuesta OK
@@ -262,9 +260,39 @@ int main(int argc, char* argv[]){
                                         }
                                         
                                     }else{
-                                        memset(bufferOut, 0, sizeof(bufferOut));
-                                        sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
-                                        write(clientesd,bufferOut,sizeof(bufferOut));
+                                        if(strncmp( cmdRcv, OPR_MKD, (sizeof(OPR_MKD)-1) ) == 0){
+                                            //aca mkdir
+                                            // 257 "nombredeldirectorio" "se creo correctamente"
+                                            printf("Entre a MKD\n");
+                                            memset(pmtRcv, 0, sizeof(pmtRcv));
+                                            extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
+
+                                            char auxfileTemp[100];
+                                            memset(auxfileTemp, 0 , sizeof(auxfileTemp));
+                                            memset(cmdSys, 0, sizeof(cmdSys));
+                                            sprintf(auxfileTemp, "%s/%s", path, pmtRcv);
+                                            sprintf(cmdSys,"mkdir %s", auxfileTemp);
+                                            printf("cmdSys: %s\n", cmdSys);
+
+                                            if(system(cmdSys) == 0){
+                                                // respuesta OK
+                                                printf("system(cmdSys) == 0\n");
+                                                memset(bufferOut, 0, sizeof(bufferOut));
+                                                sprintf(bufferOut, "%s %s %s\r\n", CMD_MKDOK, pmtRcv, TXT_MKDOK);
+                                                write(clientesd,bufferOut,sizeof(bufferOut));
+                                            }else{
+                                                // respuesta ERROR
+                                                //memset(bufferOut, 0, sizeof(bufferOut));
+                                                //sprintf(bufferOut, "%s %s %s\r\n", CMD_MKDOK, pmtRcv, TXT_MKDOK);
+                                                //write(clientesd,bufferOut,sizeof(bufferOut));
+                                                
+                                            }
+
+                                        }else{
+                                            memset(bufferOut, 0, sizeof(bufferOut));
+                                            sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
+                                            write(clientesd,bufferOut,sizeof(bufferOut));
+                                        }
                                     }
                                 }
                                 

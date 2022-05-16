@@ -6,20 +6,23 @@
 #define OP_LOGOUT   530 // Usuario No logueado correctamente.
 #define OP_FILEE    299 // archivo solicitado existe en el servidor
 #define OP_CMMDOK   200 // Comando ok
+#define OP_MKDOK    257 // MKD Ok
 #define OP_FILENE   550 // archivo solicitado no existe en el servidor
 #define DSC_OPEN "clientFTP"
-#define VERSION  "0.0"
-#define CMD_QUIT "QUIT"
-#define CMD_QUSR "quit"
-#define CMD_GET  "get"
-#define CMD_DIR  "dir"
-#define CMD_CD   "cd"
-#define CMD_CWD  "CWD"
-#define CMD_NLST "NLST"
-#define CMD_RETR "RETR"
-#define CMD_PORT "PORT"
-#define CMD_USER "USER"
-#define CMD_PASS "PASS"
+#define VERSION     "0.0"
+#define CMD_QUIT    "QUIT"
+#define CMD_QUSR    "quit"
+#define CMD_GET     "get"
+#define CMD_DIR     "dir"
+#define CMD_CD      "cd"
+#define CMD_CWD     "CWD"
+#define CMD_MKDIR   "mkdir"
+#define CMD_MKD     "MKD"
+#define CMD_NLST    "NLST"
+#define CMD_RETR    "RETR"
+#define CMD_PORT    "PORT"
+#define CMD_USER    "USER"
+#define CMD_PASS    "PASS"
 #define CMD_OKQUIT "221"
 
 #define END_OK          0

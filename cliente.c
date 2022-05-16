@@ -91,9 +91,15 @@ int main(int argc, char* argv[]){
                     if(strncmp(bufferOut, CMD_CD, strlen(CMD_CD)) == 0){
                         sendCmd(sd, CMD_CWD, prms);
                     }else{
-                        printf("Comando no reconocido.\n");
-                        memset(bufferOut,0,sizeof(bufferOut));
-                        flagErr = 1;
+                        // comando mkdir
+                        if(strncmp(bufferOut, CMD_MKDIR, strlen(CMD_MKDIR)) == 0){
+                            sendCmd(sd, CMD_MKD, prms);
+
+                        }else{
+                            printf("Comando no reconocido.\n");
+                            memset(bufferOut,0,sizeof(bufferOut));
+                            flagErr = 1;
+                        }
                     }
                 }
             }
@@ -119,9 +125,15 @@ int main(int argc, char* argv[]){
                     }else{
                         if(codeRecv(bufferIn) == OP_CWDOK){
                             printf("%s", bufferIn);
-                            //flagFTrnsf = 1;
+                            
                         }else{
+                            if(codeRecv(bufferIn) == OP_MKDOK){
+                                // 257 "nombredeldirectorio" "se creo correctamente"
+                                printf("%s", bufferIn);
+                                
+                            }else{
 
+                            }
                         }
                     }
                 }
@@ -286,7 +298,11 @@ void sendCmd(int sockd, char * cmd, char * dsc){
                                 if(strcmp(cmd, CMD_CWD)==0){
                                     sprintf(bufferOut, "%s %s\r\n", CMD_CWD, dsc);
                                 }else{
+                                    if(strcmp(cmd, CMD_MKD)==0){
+                                        sprintf(bufferOut, "%s %s\r\n", CMD_MKD, dsc);
+                                    }else{
 
+                                    }
                                 }
                             }
                         }
