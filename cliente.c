@@ -49,9 +49,8 @@ int main(int argc, char* argv[]){
 
     getsockname(sd, (struct sockaddr *)&addrLocalSock, &addrLSLen);
     inet_ntop(AF_INET,&(addrLocalSock.sin_addr), iplocal, INET_ADDRSTRLEN);
-    //printf("mi ip es: %s\n",iplocal);
+    
     portLocal = ntohs(addrLocalSock.sin_port);
-    //printf("mi puerto es: %d\n", ntohs(addrLocalSock.sin_port));
     
     sendCmd(sd, DSC_OPEN, DSC_OPEN);
 
@@ -71,7 +70,7 @@ int main(int argc, char* argv[]){
         }
 
         extCmdParam(bufferOut, cmds, prms, sizeof(cmds), sizeof(prms));
-        printf("bufferOut: %s\n", bufferOut);
+        
         if(strcmp(bufferOut, CMD_QUSR) == 0){
             sendCmd(sd, CMD_QUIT, DSC_OPEN);
         }else{
@@ -82,7 +81,6 @@ int main(int argc, char* argv[]){
             }else{
 
                 if(strncmp(bufferOut, CMD_DIR, strlen(CMD_DIR)) == 0){
-                    printf("entre a DIR\n");
                     sendCmd(sd, CMD_NLST, prms);
                     sprintf(fileName,"%s","ls.temp"); // almaceno el nombre del archivo
                     flagType = 2;
@@ -96,9 +94,17 @@ int main(int argc, char* argv[]){
                             sendCmd(sd, CMD_MKD, prms);
 
                         }else{
-                            printf("Comando no reconocido.\n");
-                            memset(bufferOut,0,sizeof(bufferOut));
-                            flagErr = 1;
+                            // comando rmdir
+                            if(strncmp(bufferOut, CMD_RMDIR, strlen(CMD_RMDIR)) == 0){
+                                sendCmd(sd, CMD_RMD, prms);
+
+                            }else{
+                                printf("Comando no reconocido.\n");
+                                memset(bufferOut,0,sizeof(bufferOut));
+                                flagErr = 1;
+                            }
+
+                            
                         }
                     }
                 }
@@ -108,7 +114,7 @@ int main(int argc, char* argv[]){
         if(flagErr == 0){
             // Lee el string desde el servidor
             respCmd(sd);
-            printf("bufferIn: %s\n", bufferIn);
+            
             if(strncmp(bufferIn, CMD_OKQUIT,(sizeof(CMD_OKQUIT))-1) == 0){
                 flagExit = 1;
                 printf("%s\n",bufferIn);
@@ -132,7 +138,13 @@ int main(int argc, char* argv[]){
                                 printf("%s", bufferIn);
                                 
                             }else{
+                                if(codeRecv(bufferIn) == OP_RMDOK){
+                                    //  "nombredeldirectorio" "se creo correctamente"
+                                    printf("%s", bufferIn);
+                                    
+                                }else{
 
+                                }
                             }
                         }
                     }
@@ -144,7 +156,6 @@ int main(int argc, char* argv[]){
 
 
         if(flagFTrnsf){
-            printf("entre al flagFTrnsf\n");
             // recupero el puerto actual para abrir el siguiente
             // de estar ocupado abro uno libre
             portLocal = ntohs(addrLocalSock.sin_port);
@@ -290,9 +301,7 @@ void sendCmd(int sockd, char * cmd, char * dsc){
                             sprintf(bufferOut, "%s %s\r\n", CMD_PORT, dsc);
                         }else{
                             if(strcmp(cmd, CMD_NLST)==0){
-                                printf("Entre al NLST\n");
                                 sprintf(bufferOut, "%s\r\n", CMD_NLST);
-                                
                             }else{
                                 //CMD_CWD
                                 if(strcmp(cmd, CMD_CWD)==0){
@@ -301,14 +310,17 @@ void sendCmd(int sockd, char * cmd, char * dsc){
                                     if(strcmp(cmd, CMD_MKD)==0){
                                         sprintf(bufferOut, "%s %s\r\n", CMD_MKD, dsc);
                                     }else{
+                                        if(strcmp(cmd, CMD_RMD)==0){
+                                            sprintf(bufferOut, "%s %s\r\n", CMD_RMD, dsc);
+                                        }else{
 
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-                
             }
         }
     }

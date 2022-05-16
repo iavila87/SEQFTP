@@ -56,13 +56,11 @@ int main(int argc, char* argv[]){
     char* fileTemp = malloc(sb.st_size);
     fread(fileTemp, sb.st_size, 1, fp);
 
-    printf("antes: %s\n", fileTemp);
     if ((strlen(fileTemp) != 0) && (fileTemp[strlen (fileTemp) - 1] == '\n')){
         fileTemp[strlen (fileTemp) - 1] = '\0';
     }
     memset(path, 0 , sizeof(path));
     sprintf(path, "%s", fileTemp);
-    printf("path: %s\n", path);
     
     fclose(fp);
     free(fileTemp);
@@ -80,7 +78,6 @@ int main(int argc, char* argv[]){
         respCmd(clientesd);
         printf("Conectado con un nuevo cliente\n");
         sendCmd(clientesd, DSC_OPEN, CMD_INIT);
-        //printf("bufferOut: %s",bufferOut);
     
         while(1){
             
@@ -88,7 +85,7 @@ int main(int argc, char* argv[]){
             respCmd(clientesd);
             
             cmdRcv = extractCmd(bufferIn);
-            printf("cmdRcv: %s\n", cmdRcv);
+            
             if(strncmp( cmdRcv, OPR_QUIT, (sizeof(OPR_QUIT)-1) ) == 0){
                 // Tratamiento comando QUIT
                 memset(bufferOut, 0, sizeof(bufferOut));
@@ -165,7 +162,7 @@ int main(int argc, char* argv[]){
 
                         }else{
                             if(strncmp( cmdRcv, OPR_PORT, (sizeof(OPR_PORT)-1) ) == 0){
-                                printf("entre al PORT\n");
+                                
                                 // tratamiento del comando PORT
                                 memset(bufferOut, 0, sizeof(bufferOut));
                                 // 200 Command okay
@@ -205,7 +202,6 @@ int main(int argc, char* argv[]){
 
                             }else{
                                 if(strncmp( cmdRcv, OPR_NLST, (sizeof(OPR_NLST)-1) ) == 0){
-                                    printf("entre al NLST\n");
                                     // creo un archivo con lo que devuelve ls
                                     memset(cmdSys, 0 , sizeof(cmdSys));
                                     sprintf(cmdSys,"ls -l %s > ls.temp", path);
@@ -218,16 +214,13 @@ int main(int argc, char* argv[]){
                                     memset(bufferOut, 0, sizeof(bufferOut));
                                     //sprintf(bufferOut, "%s %s\r\n", CMD_FOK, TXT_FOK);
                                     sprintf(bufferOut, "%s %s %s %s %d %s\r\n", CMD_FILEE, TXT_FILEE1, fileName, TXT_FILEE2, fileSize, TXT_FILEE3);
-                                    printf("bufferOut: %s\n", bufferOut);
                                     write(clientesd,bufferOut,sizeof(bufferOut));
 
                                 }else{
                                     
                                     if(strncmp( cmdRcv, OPR_CWD, (sizeof(OPR_CWD)-1) ) == 0){
-                                        // Extrae el path
-                                        printf("Llegue al CWD\n");
+                                        
                                         memset(pmtRcv, 0, sizeof(pmtRcv));
-                                        printf("CWD pathant: %s\n", pmtRcv);
                                         extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
                                         
                                         if(strncmp(pmtRcv, "..", 2) == 0){
@@ -243,14 +236,11 @@ int main(int argc, char* argv[]){
                                             sprintf(path, "%s/%s", path, pmtRcv);
                                         }
                             
-                                        printf("path: %s\n", path);
                                         memset(cmdSys, 0 , sizeof(cmdSys));
                                         sprintf(cmdSys,"cd %s", path);
-                                        printf("cmdSys: %s\n", cmdSys);
 
                                         if(system(cmdSys) == 0){
                                             // respuesta OK
-                                            printf("system(cmdSys) == 0\n");
                                             memset(bufferOut, 0, sizeof(bufferOut));
                                             sprintf(bufferOut, "%s %s %s\r\n", CMD_CWDOK, OPR_CWD, TXT_CDMNDOK);
                                             write(clientesd,bufferOut,sizeof(bufferOut));
@@ -263,7 +253,6 @@ int main(int argc, char* argv[]){
                                         if(strncmp( cmdRcv, OPR_MKD, (sizeof(OPR_MKD)-1) ) == 0){
                                             //aca mkdir
                                             // 257 "nombredeldirectorio" "se creo correctamente"
-                                            printf("Entre a MKD\n");
                                             memset(pmtRcv, 0, sizeof(pmtRcv));
                                             extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
 
@@ -272,11 +261,9 @@ int main(int argc, char* argv[]){
                                             memset(cmdSys, 0, sizeof(cmdSys));
                                             sprintf(auxfileTemp, "%s/%s", path, pmtRcv);
                                             sprintf(cmdSys,"mkdir %s", auxfileTemp);
-                                            printf("cmdSys: %s\n", cmdSys);
 
                                             if(system(cmdSys) == 0){
                                                 // respuesta OK
-                                                printf("system(cmdSys) == 0\n");
                                                 memset(bufferOut, 0, sizeof(bufferOut));
                                                 sprintf(bufferOut, "%s %s %s\r\n", CMD_MKDOK, pmtRcv, TXT_MKDOK);
                                                 write(clientesd,bufferOut,sizeof(bufferOut));
@@ -289,9 +276,36 @@ int main(int argc, char* argv[]){
                                             }
 
                                         }else{
-                                            memset(bufferOut, 0, sizeof(bufferOut));
-                                            sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
-                                            write(clientesd,bufferOut,sizeof(bufferOut));
+                                            if(strncmp( cmdRcv, OPR_RMD, (sizeof(OPR_RMD)-1) ) == 0){
+                                                //aca rmdir
+                                                // 250 "nombredeldirectorio" "remove succesful"
+                                                memset(pmtRcv, 0, sizeof(pmtRcv));
+                                                extract1Pmt(bufferIn, pmtRcv); // extrae el parametro del buffer de entrada
+
+                                                char auxfileTemp[100];
+                                                memset(auxfileTemp, 0 , sizeof(auxfileTemp));
+                                                memset(cmdSys, 0, sizeof(cmdSys));
+                                                sprintf(auxfileTemp, "%s/%s", path, pmtRcv);
+                                                sprintf(cmdSys,"rmdir %s", auxfileTemp);
+
+                                                if(system(cmdSys) == 0){
+                                                    // respuesta OK
+                                                    memset(bufferOut, 0, sizeof(bufferOut));
+                                                    sprintf(bufferOut, "%s %s %s\r\n", CMD_CMMDOK, pmtRcv, TXT_RMDOK);
+                                                    write(clientesd,bufferOut,sizeof(bufferOut));
+                                                }else{
+                                                    // respuesta ERROR
+                                                    //memset(bufferOut, 0, sizeof(bufferOut));
+                                                    //sprintf(bufferOut, "%s %s %s\r\n", CMD_MKDOK, pmtRcv, TXT_MKDOK);
+                                                    //write(clientesd,bufferOut,sizeof(bufferOut));
+                                                }
+
+                                            }else{
+                                                memset(bufferOut, 0, sizeof(bufferOut));
+                                                sprintf(bufferOut, "%s %s %s\r\n", CMD_INIT, DSC_NAME, VERSION);
+                                                write(clientesd,bufferOut,sizeof(bufferOut));
+                                            }
+
                                         }
                                     }
                                 }
@@ -509,12 +523,7 @@ void extract1Pmt(char * s, char * p){
     r = strchr(s,' ');
     r+=1;
     end = strchr(r,'\r') - r;
-    printf("r: %s\n",r);
-    printf("end: %d\n",end);
-    printf("d: %s\n",d);
     strncpy(d,r,end);
-    printf("dDes: %s\n",d);
-    
     
     if(d == NULL){
         //*p = 0;

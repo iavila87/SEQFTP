@@ -7,6 +7,7 @@
 #define OP_FILEE    299 // archivo solicitado existe en el servidor
 #define OP_CMMDOK   200 // Comando ok
 #define OP_MKDOK    257 // MKD Ok
+#define OP_RMDOK    200 
 #define OP_FILENE   550 // archivo solicitado no existe en el servidor
 #define DSC_OPEN "clientFTP"
 #define VERSION     "0.0"
@@ -18,6 +19,8 @@
 #define CMD_CWD     "CWD"
 #define CMD_MKDIR   "mkdir"
 #define CMD_MKD     "MKD"
+#define CMD_RMDIR   "rmdir"
+#define CMD_RMD     "RMD"
 #define CMD_NLST    "NLST"
 #define CMD_RETR    "RETR"
 #define CMD_PORT    "PORT"
